@@ -163,7 +163,7 @@ def _chart_aylik_png():
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
-        plt.rcParams['font.family'] = 'DejaVu Sans'
+    plt.rcParams['font.family'] = 'DejaVu Sans'
     ay, gelir, gider, net = _aylik_veriler()
     x = range(len(ay))
     w = 0.25

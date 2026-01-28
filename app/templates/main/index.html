@@ -16,7 +16,6 @@
 
 {% block extra_css %}
 <style>
-    /* Tarih & Saat Kartı */
     .datetime-card {
         background: white;
         border-radius: var(--radius-xl);
@@ -24,16 +23,11 @@
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         border: 1px solid var(--gray-100);
     }
-    
     .datetime-header {
         display: flex;
         align-items: center;
         gap: 1rem;
-        margin-bottom: 1rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid var(--gray-100);
     }
-    
     .datetime-icon {
         width: 56px;
         height: 56px;
@@ -45,7 +39,6 @@
         font-size: 1.5rem;
         color: white;
     }
-    
     .datetime-info .time {
         font-family: 'JetBrains Mono', monospace;
         font-size: 1.5rem;
@@ -53,168 +46,10 @@
         color: var(--gray-800);
         letter-spacing: 0.02em;
     }
-    
     .datetime-info .date {
         font-size: 0.85rem;
         color: var(--gray-500);
         margin-top: 0.15rem;
-    }
-    
-    .timezone-select-wrapper {
-        display: flex;
-        flex-direction: column;
-        gap: 0.4rem;
-        position: relative;
-    }
-    
-    .timezone-label {
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--gray-500);
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 0.35rem;
-    }
-    
-    .timezone-trigger {
-        width: 100%;
-        padding: 0.5rem 2rem 0.5rem 0.75rem;
-        border: 2px solid var(--gray-200);
-        border-radius: 8px;
-        background: var(--gray-50);
-        color: var(--gray-700);
-        font-size: 0.8rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        text-align: left;
-        position: relative;
-    }
-    
-    .timezone-trigger::after {
-        content: '\f107';
-        font-family: 'Font Awesome 6 Free';
-        font-weight: 900;
-        position: absolute;
-        right: 0.75rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--gray-400);
-        transition: transform 0.2s ease;
-    }
-    
-    .timezone-trigger.open::after {
-        transform: translateY(-50%) rotate(180deg);
-    }
-    
-    .timezone-trigger:hover {
-        border-color: var(--primary-300);
-        background: white;
-    }
-    
-    .timezone-dropdown {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        margin-top: 0.25rem;
-        background: white;
-        border: 2px solid var(--primary-300);
-        border-radius: 8px;
-        z-index: 100;
-        display: none;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        overflow: hidden;
-    }
-    
-    .timezone-dropdown.active {
-        display: block;
-    }
-    
-    .timezone-search-box {
-        padding: 0.5rem;
-        border-bottom: 1px solid var(--gray-200);
-        background: var(--gray-50);
-    }
-    
-    .timezone-search {
-        width: 100%;
-        padding: 0.5rem 0.75rem 0.5rem 2rem;
-        border: 2px solid var(--gray-200);
-        border-radius: 6px;
-        background: white;
-        font-size: 0.8rem;
-        transition: all 0.2s ease;
-    }
-    
-    .timezone-search:focus {
-        outline: none;
-        border-color: var(--primary-500);
-    }
-    
-    .timezone-search-box {
-        position: relative;
-    }
-    
-    .timezone-search-box i {
-        position: absolute;
-        left: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--gray-400);
-        font-size: 0.75rem;
-    }
-    
-    .timezone-list {
-        max-height: 180px;
-        overflow-y: auto;
-    }
-    
-    .timezone-group-label {
-        padding: 0.4rem 0.75rem;
-        font-size: 0.65rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        color: var(--gray-400);
-        background: var(--gray-50);
-        position: sticky;
-        top: 0;
-    }
-    
-    .timezone-option {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.8rem;
-        cursor: pointer;
-        transition: background 0.15s ease;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    
-    .timezone-option:hover {
-        background: var(--primary-50);
-    }
-    
-    .timezone-option.selected {
-        background: var(--primary-100);
-        color: var(--primary-700);
-        font-weight: 600;
-    }
-    
-    .timezone-option .offset {
-        margin-left: auto;
-        font-size: 0.7rem;
-        color: var(--gray-400);
-        font-family: 'JetBrains Mono', monospace;
-    }
-    
-    .no-results {
-        padding: 1rem;
-        text-align: center;
-        color: var(--gray-400);
-        font-size: 0.8rem;
     }
 </style>
 {% endblock %}
@@ -252,7 +87,7 @@
         </div>
     </div>
     
-    <!-- Tarih & Saat Kartı -->
+    <!-- Tarih & Saat (Europe/Istanbul) -->
     <div class="datetime-card fade-in" style="animation-delay: 0.3s;">
         <div class="datetime-header">
             <div class="datetime-icon">
@@ -261,43 +96,6 @@
             <div class="datetime-info">
                 <div class="time" id="currentTime">{{ current_datetime.strftime('%H:%M:%S') }}</div>
                 <div class="date" id="currentDate">{{ current_datetime.strftime('%d %B %Y') }}</div>
-            </div>
-        </div>
-        
-        <div class="timezone-select-wrapper">
-            <div class="timezone-label">
-                <i class="fas fa-globe"></i> Saat Dilimi
-            </div>
-            
-            <button type="button" class="timezone-trigger" id="timezoneTrigger">
-                {{ current_timezone.split('/')[1].replace('_', ' ') if '/' in current_timezone else current_timezone }}
-            </button>
-            
-            <div class="timezone-dropdown" id="timezoneDropdown">
-                <div class="timezone-search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" class="timezone-search" id="timezoneSearch" 
-                           placeholder="Şehir ara..." autocomplete="off">
-                </div>
-                
-                <div class="timezone-list" id="timezoneList">
-                    {% for region, zones in timezones.items() %}
-                        {% if zones %}
-                        <div class="timezone-group" data-region="{{ region }}">
-                            <div class="timezone-group-label">{{ region }}</div>
-                            {% for zone in zones %}
-                            <div class="timezone-option {% if zone.value == current_timezone %}selected{% endif %}" 
-                                 data-value="{{ zone.value }}" 
-                                 data-city="{{ zone.city }}"
-                                 data-offset="{{ zone.offset }}">
-                                <span>{{ zone.city }}</span>
-                                <span class="offset">{{ zone.offset }}</span>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                    {% endfor %}
-                </div>
             </div>
         </div>
     </div>
@@ -432,127 +230,17 @@
 {% block extra_js %}
 <script type="module">
     import { Dashboard, Yardimci, Kategoriler } from '{{ url_for("static", filename="js/db.js") }}';
-    import { setTimezone, getTimezone } from '{{ url_for("static", filename="js/i18n.js") }}';
     
-    // Saat güncelleme
+    const TZ = 'Europe/Istanbul';
     function updateClock() {
         const now = new Date();
-        const timezone = getTimezone();
-        
-        const timeOptions = { timeZone: timezone, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-        const dateOptions = { timeZone: timezone, day: 'numeric', month: 'long', year: 'numeric' };
-        
-        document.getElementById('currentTime').textContent = now.toLocaleTimeString('tr-TR', timeOptions);
-        document.getElementById('currentDate').textContent = now.toLocaleDateString('tr-TR', dateOptions);
+        const timeOpt = { timeZone: TZ, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+        const dateOpt = { timeZone: TZ, day: 'numeric', month: 'long', year: 'numeric' };
+        document.getElementById('currentTime').textContent = now.toLocaleTimeString('tr-TR', timeOpt);
+        document.getElementById('currentDate').textContent = now.toLocaleDateString('tr-TR', dateOpt);
     }
-    
     setInterval(updateClock, 1000);
     updateClock();
-    
-    // Saat dilimi seçici
-    const tzTrigger = document.getElementById('timezoneTrigger');
-    const tzSearch = document.getElementById('timezoneSearch');
-    const tzDropdown = document.getElementById('timezoneDropdown');
-    const tzList = document.getElementById('timezoneList');
-    const tzOptions = document.querySelectorAll('.timezone-option');
-    const tzGroups = document.querySelectorAll('.timezone-group');
-    
-    // Trigger'a tıklandığında dropdown aç/kapat
-    tzTrigger.addEventListener('click', () => {
-        const isOpen = tzDropdown.classList.toggle('active');
-        tzTrigger.classList.toggle('open', isOpen);
-        
-        if (isOpen) {
-            tzSearch.value = '';
-            tzSearch.focus();
-            // Tüm seçenekleri göster
-            tzGroups.forEach(g => g.style.display = 'block');
-            tzOptions.forEach(o => o.style.display = 'flex');
-        }
-    });
-    
-    // Dışarı tıklandığında kapat
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.timezone-select-wrapper')) {
-            tzDropdown.classList.remove('active');
-            tzTrigger.classList.remove('open');
-        }
-    });
-    
-    // Arama filtresi
-    tzSearch.addEventListener('input', function() {
-        const query = this.value.toLowerCase().trim();
-        let hasResults = false;
-        
-        tzGroups.forEach(group => {
-            let groupHasMatch = false;
-            const options = group.querySelectorAll('.timezone-option');
-            
-            options.forEach(option => {
-                const city = option.dataset.city.toLowerCase();
-                const offset = option.dataset.offset.toLowerCase();
-                const matches = city.includes(query) || offset.includes(query);
-                
-                option.style.display = matches ? 'flex' : 'none';
-                if (matches) {
-                    groupHasMatch = true;
-                    hasResults = true;
-                }
-            });
-            
-            group.style.display = groupHasMatch ? 'block' : 'none';
-        });
-        
-        // Sonuç yoksa mesaj göster
-        let noResults = tzList.querySelector('.no-results');
-        if (!hasResults) {
-            if (!noResults) {
-                noResults = document.createElement('div');
-                noResults.className = 'no-results';
-                noResults.textContent = 'Sonuç bulunamadı';
-                tzList.appendChild(noResults);
-            }
-            noResults.style.display = 'block';
-        } else if (noResults) {
-            noResults.style.display = 'none';
-        }
-    });
-    
-    // Seçim yapıldığında
-    tzOptions.forEach(option => {
-        option.addEventListener('click', function() {
-            const value = this.dataset.value;
-            const city = this.dataset.city;
-            
-            // Seçimi güncelle
-            tzOptions.forEach(o => o.classList.remove('selected'));
-            this.classList.add('selected');
-            
-            // Trigger'ı güncelle
-            tzTrigger.textContent = city;
-            
-            // Dropdown kapat
-            tzDropdown.classList.remove('active');
-            tzTrigger.classList.remove('open');
-            
-            // Saat dilimini kaydet
-            setTimezone(value);
-            updateClock();
-        });
-    });
-    
-    // Klavye kontrolleri
-    tzSearch.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            const visibleOptions = [...tzOptions].filter(o => o.style.display !== 'none');
-            if (visibleOptions.length > 0) {
-                visibleOptions[0].click();
-            }
-        } else if (e.key === 'Escape') {
-            tzDropdown.classList.remove('active');
-            tzTrigger.classList.remove('open');
-        }
-    });
     
     // Dashboard verilerini yükle
     async function loadDashboard() {

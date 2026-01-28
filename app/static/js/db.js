@@ -670,7 +670,7 @@ export const Dashboard = {
 // ==================== YARDIMCI FONKSİYONLAR ====================
 // Saat dilimi desteği
 function getStoredTimezone() {
-    return localStorage.getItem('kisiselmuhasebe_timezone') || 'Europe/Istanbul';
+    return 'Europe/Istanbul';
 }
 
 function getStoredLanguage() {
