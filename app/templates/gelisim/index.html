@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Gelişim - Kişisel Muhasebe{% endblock %}
+{% block page_title %}Gelişim{% endblock %}
+{% block page_subtitle %}Aylık ve yıllık gelir, gider ve net kâr grafikleri{% endblock %}
+
+{% block extra_css %}
+<style>
+    .gelisim-charts { display: flex; flex-direction: column; gap: 1.5rem; }
+    .gelisim-charts .card-body img { display: block; border-radius: var(--radius-lg); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="gelisim-charts">
+    <div class="card fade-in">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-chart-bar" style="margin-right: 0.5rem; color: var(--primary-500);"></i>
+                Aylık gelir, gider ve net kâr
+            </h3>
+        </div>
+        <div class="card-body" style="overflow-x: auto;">
+            <img src="{{ url_for('gelisim.chart_aylik') }}" alt="Aylık grafik" style="max-width: 100%; height: auto;">
+        </div>
+    </div>
+    
+    <div class="card fade-in" style="animation-delay: 0.1s;">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-chart-line" style="margin-right: 0.5rem; color: var(--primary-500);"></i>
+                Yıllık gelir, gider ve net kâr
+            </h3>
+        </div>
+        <div class="card-body" style="overflow-x: auto;">
+            <img src="{{ url_for('gelisim.chart_yillik') }}" alt="Yıllık grafik" style="max-width: 100%; height: auto;">
+        </div>
+    </div>
+</div>
+{% endblock %}

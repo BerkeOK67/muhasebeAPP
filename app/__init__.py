@@ -1,4 +1,5 @@
-from flask import Flask, request, session
+from flask import Flask, request, session, redirect, url_for
+
 from config import Config
 
 def get_timezone():
@@ -9,6 +10,23 @@ def get_timezone():
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    
+    # Auth blueprint (login/logout)
+    from app.auth import bp as auth_bp
+    app.register_blueprint(auth_bp)
+    
+    # Koruma: giriş yoksa /login'e yönlendir
+    @app.before_request
+    def require_login():
+        if request.endpoint in ('auth.login', 'auth.logout', 'static'):
+            return None
+        if request.path.startswith('/static/'):
+            return None
+        if request.path.startswith('/set-timezone/'):
+            return None
+        if not session.get('user_email'):
+            return redirect(url_for('auth.login', next=request.full_path.rstrip('?') or request.path))
+        return None
     
     # Jinja2 için global değişkenler
     @app.context_processor
@@ -22,7 +40,8 @@ def create_app():
         return {
             'current_timezone': get_timezone(),
             'timezones': Config.get_grouped_timezones(),
-            'current_datetime': now
+            'current_datetime': now,
+            'current_user_email': session.get('user_email'),
         }
     
     # Saat dilimi değiştirme
@@ -45,5 +64,8 @@ def create_app():
     
     from app.alacaklilar import bp as alacaklilar_bp
     app.register_blueprint(alacaklilar_bp, url_prefix='/alacaklilar')
+    
+    from app.gelisim import bp as gelisim_bp
+    app.register_blueprint(gelisim_bp)
     
     return app

@@ -95,6 +95,15 @@
                         <span>Gider Ekle</span>
                     </a>
                 </div>
+                
+                <!-- Gelişim -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Gelişim</div>
+                    <a href="{{ url_for('gelisim.index') }}" class="nav-item {% if request.endpoint == 'gelisim.index' %}active{% endif %}">
+                        <i class="fas fa-chart-column" style="color: #3b82f6;"></i>
+                        <span>Gelişim</span>
+                    </a>
+                </div>
             </nav>
         </aside>
         
@@ -107,6 +116,11 @@
                     <p>{% block page_subtitle %}Finansal durumunuza genel bakış{% endblock %}</p>
                 </div>
                 <div class="header-actions">
+                    {% if current_user_email %}
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-sign-out-alt"></i> Çıkış
+                    </a>
+                    {% endif %}
                     {% block header_actions %}{% endblock %}
                 </div>
             </header>
