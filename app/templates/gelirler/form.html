@@ -1,0 +1,477 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if id %}Gelir Düzenle{% else %}Yeni Gelir{% endif %} - Kişisel Muhasebe{% endblock %}
+
+{% block page_title %}{% if id %}Gelir Düzenle{% else %}Yeni Gelir Ekle{% endif %}{% endblock %}
+{% block page_subtitle %}{% if id %}Mevcut gelir kaydını düzenleyin{% else %}Yeni bir gelir kaydı oluşturun{% endif %}{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('main.index') }}" class="btn btn-secondary">
+    <i class="fas fa-home"></i> Dashboard'a Dön
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .ozel-alan {
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        border: 2px solid var(--primary-400);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        margin-top: 1rem;
+        display: none;
+    }
+    .ozel-alan.active {
+        display: block;
+        animation: fadeIn 0.3s ease;
+    }
+    .checkbox-container {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem;
+        background: var(--gray-50);
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: var(--transition);
+        margin-top: 1rem;
+    }
+    .checkbox-container:hover {
+        background: var(--gray-100);
+    }
+    .checkbox-container input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        accent-color: var(--primary-500);
+    }
+    .alacakli-liste-container {
+        max-height: 300px;
+        overflow-y: auto;
+        margin-top: 1rem;
+    }
+    .alacakli-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem;
+        background: white;
+        border-radius: var(--radius);
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        transition: var(--transition);
+        border: 2px solid transparent;
+    }
+    .alacakli-item:hover {
+        background: var(--primary-50);
+        border-color: var(--primary-200);
+    }
+    .alacakli-item.selected {
+        background: var(--primary-100);
+        border-color: var(--primary-500);
+    }
+    .alacakli-item-info h4 {
+        margin: 0;
+        font-size: 0.95rem;
+        color: var(--gray-800);
+    }
+    .alacakli-item-info span {
+        font-size: 0.8rem;
+        color: var(--gray-500);
+    }
+    .alacakli-item-tutar {
+        font-weight: 700;
+        color: #7c3aed;
+    }
+    .search-box {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+    .search-box input {
+        padding-left: 2.5rem;
+    }
+    .search-box i {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--gray-400);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card fade-in" style="max-width: 800px;">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-arrow-trend-up" style="margin-right: 0.5rem; color: var(--gelir-color);"></i>
+            Gelir Bilgileri
+        </h3>
+    </div>
+    <div class="card-body">
+        <form id="gelirForm">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label required">Tarih</label>
+                    <input type="date" class="form-control" id="tarih" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Tutar (₺)</label>
+                    <input type="number" class="form-control" id="tutar" step="0.01" min="0" placeholder="0.00" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label required">Kategori</label>
+                <select class="form-control form-select" id="kategori" required>
+                    <option value="">Kategori Seçin</option>
+                </select>
+            </div>
+            
+            <!-- Yeni Müşteri Alanı -->
+            <div class="ozel-alan" id="yeniMusteriAlani">
+                <h4 style="font-size: 0.875rem; font-weight: 600; color: var(--gray-700); margin-bottom: 1rem;">
+                    <i class="fas fa-user-plus" style="margin-right: 0.5rem; color: var(--primary-500);"></i>
+                    Müşteri Bilgileri
+                </h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label required">İsim</label>
+                        <input type="text" class="form-control" id="musteriIsim" placeholder="Müşteri adı">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">Soyisim</label>
+                        <input type="text" class="form-control" id="musteriSoyisim" placeholder="Müşteri soyadı">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Telefon</label>
+                        <input type="tel" class="form-control" id="musteriTelefon" placeholder="0555 555 55 55">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Adres</label>
+                        <input type="text" class="form-control" id="musteriAdres" placeholder="Adres">
+                    </div>
+                </div>
+                
+                <label class="checkbox-container">
+                    <input type="checkbox" id="kismiOdeme">
+                    <div>
+                        <strong style="color: var(--gray-700);">
+                            <i class="fas fa-clock" style="margin-right: 0.5rem; color: #f59e0b;"></i>
+                            Kısmi Ödeme
+                        </strong>
+                        <p style="margin: 0; font-size: 0.8rem; color: var(--gray-500);">
+                            Müşterinin kalan borcu var, tahsilat listesine ekle
+                        </p>
+                    </div>
+                </label>
+                
+                <div id="kalanBorcAlani" style="display: none; margin-top: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label required">Toplam Borç Tutarı (₺)</label>
+                        <input type="number" class="form-control" id="toplamBorc" step="0.01" min="0" placeholder="0.00">
+                        <small style="color: var(--gray-500);">Alınan tutar düşülerek kalan borç hesaplanacak</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tahsilat Getirisi Alanı -->
+            <div class="ozel-alan" id="alacakGetirisiAlani">
+                <h4 style="font-size: 0.875rem; font-weight: 600; color: var(--gray-700); margin-bottom: 1rem;">
+                    <i class="fas fa-coins" style="margin-right: 0.5rem; color: #7c3aed;"></i>
+                    Tahsilat Yapılacak Kişi
+                </h4>
+                
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" class="form-control" id="alacakliArama" placeholder="İsim ile ara...">
+                </div>
+                
+                <div class="alacakli-liste-container" id="alacakliListe">
+                    <p style="text-align: center; color: var(--gray-500); padding: 2rem;">
+                        Yükleniyor...
+                    </p>
+                </div>
+                
+                <input type="hidden" id="secilenAlacakliId">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Açıklama</label>
+                <textarea class="form-control" id="aciklama" rows="2" placeholder="Gelir hakkında detay..."></textarea>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-save"></i> {% if id %}Güncelle{% else %}Kaydet{% endif %}
+                </button>
+                <a href="{{ url_for('gelirler.liste') }}" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-times"></i> İptal
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module">
+    import { Gelirler, Alacaklilar, Kategoriler, Yardimci } from '{{ url_for("static", filename="js/db.js") }}';
+    
+    const editId = '{{ id if id else "" }}';
+    let tumAlacaklilar = [];
+    
+    // Kategorileri yükle
+    function kategorileriYukle() {
+        const select = document.getElementById('kategori');
+        Kategoriler.gelir.forEach(kat => {
+            const option = document.createElement('option');
+            option.value = kat.id;
+            option.innerHTML = `${kat.ad}`;
+            select.appendChild(option);
+        });
+    }
+    
+    // Alacaklıları yükle
+    async function alacaklilariYukle() {
+        tumAlacaklilar = await Alacaklilar.hepsiniGetir();
+        alacakliListesiRender(tumAlacaklilar);
+    }
+    
+    // Alacaklı listesi render
+    function alacakliListesiRender(liste) {
+        const container = document.getElementById('alacakliListe');
+        
+        if (liste.length === 0) {
+            container.innerHTML = `
+                <p style="text-align: center; color: var(--gray-500); padding: 2rem;">
+                    <i class="fas fa-inbox" style="display: block; font-size: 2rem; margin-bottom: 0.5rem;"></i>
+                    Tahsilat bekleyen kişi bulunamadı
+                </p>
+            `;
+            return;
+        }
+        
+        container.innerHTML = liste.map(kisi => `
+            <div class="alacakli-item" data-id="${kisi.id}" onclick="alacakliSec('${kisi.id}')">
+                <div class="alacakli-item-info">
+                    <h4><i class="fas fa-user" style="margin-right: 0.5rem; color: #a78bfa;"></i>${kisi.isim} ${kisi.soyisim}</h4>
+                    <span>${kisi.telefon || 'Telefon yok'}</span>
+                </div>
+                <div class="alacakli-item-tutar">
+                    ${Yardimci.paraFormat(kisi.kalan_borc)}
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    // Alacaklı seç
+    window.alacakliSec = function(id) {
+        // Önceki seçimi kaldır
+        document.querySelectorAll('.alacakli-item').forEach(el => el.classList.remove('selected'));
+        
+        // Yeni seçimi işaretle
+        const secilen = document.querySelector(`.alacakli-item[data-id="${id}"]`);
+        if (secilen) {
+            secilen.classList.add('selected');
+            document.getElementById('secilenAlacakliId').value = id;
+            
+            // Tutar alanını otomatik doldur (max olarak kalan borcu koy)
+            const kisi = tumAlacaklilar.find(a => a.id === id);
+            if (kisi) {
+                const tutarInput = document.getElementById('tutar');
+                if (!tutarInput.value || parseFloat(tutarInput.value) === 0) {
+                    tutarInput.value = kisi.kalan_borc;
+                }
+            }
+        }
+    };
+    
+    // Arama
+    document.getElementById('alacakliArama')?.addEventListener('input', function() {
+        const aranan = this.value.toLowerCase().trim();
+        const filtrelenmis = tumAlacaklilar.filter(kisi => 
+            `${kisi.isim} ${kisi.soyisim}`.toLowerCase().includes(aranan)
+        );
+        alacakliListesiRender(filtrelenmis);
+    });
+    
+    // Kategori değiştiğinde özel alanları göster/gizle
+    document.getElementById('kategori').addEventListener('change', function() {
+        const yeniMusteriAlani = document.getElementById('yeniMusteriAlani');
+        const alacakGetirisiAlani = document.getElementById('alacakGetirisiAlani');
+        
+        // Tüm özel alanları gizle
+        yeniMusteriAlani.classList.remove('active');
+        alacakGetirisiAlani.classList.remove('active');
+        
+        if (this.value === 'yeni_musteri') {
+            yeniMusteriAlani.classList.add('active');
+        } else if (this.value === 'alacak_getirisi') {
+            alacakGetirisiAlani.classList.add('active');
+            alacaklilariYukle();
+        }
+    });
+    
+    // Kısmi ödeme checkbox
+    document.getElementById('kismiOdeme')?.addEventListener('change', function() {
+        const kalanBorcAlani = document.getElementById('kalanBorcAlani');
+        kalanBorcAlani.style.display = this.checked ? 'block' : 'none';
+    });
+    
+    // Düzenleme modunda veriyi yükle
+    async function verileriYukle() {
+        if (editId) {
+            const gelir = await Gelirler.getir(editId);
+            if (gelir) {
+                document.getElementById('tarih').value = gelir.tarih;
+                document.getElementById('tutar').value = gelir.tutar;
+                document.getElementById('kategori').value = gelir.kategori;
+                document.getElementById('aciklama').value = gelir.aciklama || '';
+            }
+        } else {
+            document.getElementById('tarih').value = Yardimci.bugunTarih();
+        }
+    }
+    
+    // Form submit
+    document.getElementById('gelirForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const kategori = document.getElementById('kategori').value;
+        const tutar = parseFloat(document.getElementById('tutar').value);
+        const tarih = document.getElementById('tarih').value;
+        const aciklama = document.getElementById('aciklama').value.trim();
+        
+        try {
+            if (editId) {
+                // Düzenleme modu
+                await Gelirler.guncelle(editId, { tarih, tutar, kategori, aciklama });
+                Toast.success('Gelir başarıyla güncellendi!');
+            } else if (kategori === 'yeni_musteri') {
+                // Yeni müşteri
+                const isim = document.getElementById('musteriIsim').value.trim();
+                const soyisim = document.getElementById('musteriSoyisim').value.trim();
+                const telefon = document.getElementById('musteriTelefon').value.trim();
+                const adres = document.getElementById('musteriAdres').value.trim();
+                const kismiOdeme = document.getElementById('kismiOdeme').checked;
+                
+                if (!isim || !soyisim) {
+                    Toast.error('Müşteri isim ve soyisim zorunludur!');
+                    return;
+                }
+                
+                // Gelir ekle
+                await Gelirler.ekle({
+                    tarih, tutar, kategori,
+                    aciklama: `${isim} ${soyisim} - ${aciklama}`.trim()
+                });
+                
+                // Kısmi ödeme ise tahsilat listesine ekle
+                if (kismiOdeme) {
+                    const toplamBorc = parseFloat(document.getElementById('toplamBorc').value) || 0;
+                    if (toplamBorc <= tutar) {
+                        Toast.error('Toplam borç, alınan tutardan büyük olmalı!');
+                        return;
+                    }
+                    
+                    // Tarihi ISO formatına çevir
+                    const odemeTarihi = new Date(tarih + 'T00:00:00').toISOString();
+                    
+                    await Alacaklilar.ekle({
+                        isim, soyisim, telefon, adres,
+                        toplam_borc: toplamBorc,
+                        kalan_borc: toplamBorc - tutar,
+                        odemeler: [{
+                            tutar: tutar,
+                            tarih: odemeTarihi,
+                            id: Date.now().toString(36)
+                        }]
+                    });
+                    
+                    Toast.success('Gelir eklendi ve müşteri tahsilat listesine kaydedildi!');
+                } else {
+                    Toast.success('Gelir başarıyla eklendi!');
+                }
+            } else if (kategori === 'alacak_getirisi') {
+                // Tahsilat getirisi
+                const alacakliId = document.getElementById('secilenAlacakliId').value;
+                
+                if (!alacakliId) {
+                    Toast.error('Lütfen tahsilat yapılacak kişiyi seçin!');
+                    return;
+                }
+                
+                const kisi = tumAlacaklilar.find(a => a.id === alacakliId);
+                
+                // Gelir ekle
+                await Gelirler.ekle({
+                    tarih, tutar, kategori,
+                    aciklama: `${kisi.isim} ${kisi.soyisim} tahsilatı - ${aciklama}`.trim(),
+                    alacakli_id: alacakliId
+                });
+                
+                // Tarihi ISO formatına çevir
+                const odemeTarihi = new Date(tarih + 'T00:00:00').toISOString();
+                
+                // Tahsilat yap
+                const sonuc = await Alacaklilar.odemeYap(alacakliId, tutar, odemeTarihi);
+                
+                if (sonuc.tamamenOdendi) {
+                    Toast.success('🎉 Gelir eklendi ve tahsilat tamamlandı! Kişi listeden silindi.');
+                } else {
+                    Toast.success(`Gelir eklendi! Kalan tahsilat: ${Yardimci.paraFormat(sonuc.kalan)}`);
+                }
+            } else {
+                // Normal gelir
+                await Gelirler.ekle({ tarih, tutar, kategori, aciklama });
+                Toast.success('Gelir başarıyla eklendi!');
+            }
+            
+            // Düzenleme modunda listeye dön, ekleme modunda formu sıfırla
+            if (editId) {
+                setTimeout(() => {
+                    window.location.href = '{{ url_for("gelirler.liste") }}';
+                }, 1000);
+            } else {
+                // Formu sıfırla
+                formSifirla();
+            }
+        } catch (error) {
+            Toast.error(error.message || 'İşlem sırasında hata oluştu!');
+            console.error(error);
+        }
+    });
+    
+    // Form sıfırlama fonksiyonu
+    function formSifirla() {
+        document.getElementById('gelirForm').reset();
+        document.getElementById('tarih').value = Yardimci.bugunTarih();
+        document.getElementById('kategori').value = '';
+        document.getElementById('tutar').value = '';
+        document.getElementById('aciklama').value = '';
+        
+        // Özel alanları gizle
+        document.getElementById('yeniMusteriAlani').classList.remove('active');
+        document.getElementById('alacakGetirisiAlani').classList.remove('active');
+        document.getElementById('kalanBorcAlani').style.display = 'none';
+        document.getElementById('kismiOdeme').checked = false;
+        document.getElementById('secilenAlacakliId').value = '';
+        
+        // Müşteri bilgilerini temizle
+        document.getElementById('musteriIsim').value = '';
+        document.getElementById('musteriSoyisim').value = '';
+        document.getElementById('musteriTelefon').value = '';
+        document.getElementById('musteriAdres').value = '';
+        document.getElementById('toplamBorc').value = '';
+        
+        // Alacaklı seçimini temizle
+        document.querySelectorAll('.alacakli-item').forEach(el => el.classList.remove('selected'));
+    }
+    
+    // Başlangıç
+    kategorileriYukle();
+    verileriYukle();
+</script>
+{% endblock %}

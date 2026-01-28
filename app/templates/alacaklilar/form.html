@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if id %}Kayıt Düzenle{% else %}Yeni Kayıt{% endif %} - Kişisel Muhasebe{% endblock %}
+
+{% block page_title %}{% if id %}Kayıt Düzenle{% else %}Yeni Tahsilat Kaydı{% endif %}{% endblock %}
+{% block page_subtitle %}{% if id %}Mevcut kaydı düzenleyin{% else %}Yeni bir tahsilat kaydı oluşturun{% endif %}{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('main.index') }}" class="btn btn-secondary">
+    <i class="fas fa-home"></i> Dashboard'a Dön
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card fade-in" style="max-width: 800px;">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-user" style="margin-right: 0.5rem; color: #7c3aed;"></i>
+            Kişi Bilgileri
+        </h3>
+    </div>
+    <div class="card-body">
+        <form id="tahsilatForm">
+            <!-- Kişisel Bilgiler -->
+            <div style="margin-bottom: 2rem;">
+                <h4 style="font-size: 0.875rem; font-weight: 600; color: var(--gray-600); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                    <i class="fas fa-id-card" style="margin-right: 0.5rem;"></i>Kişisel Bilgiler
+                </h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label required">İsim</label>
+                        <input type="text" class="form-control" id="isim" placeholder="Kişinin adı" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">Soyisim</label>
+                        <input type="text" class="form-control" id="soyisim" placeholder="Kişinin soyadı" required>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- İletişim Bilgileri -->
+            <div style="margin-bottom: 2rem;">
+                <h4 style="font-size: 0.875rem; font-weight: 600; color: var(--gray-600); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                    <i class="fas fa-address-book" style="margin-right: 0.5rem;"></i>İletişim Bilgileri
+                </h4>
+                <div class="form-group">
+                    <label class="form-label">Telefon Numarası</label>
+                    <input type="tel" class="form-control" id="telefon" placeholder="0555 555 55 55">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Adres</label>
+                    <textarea class="form-control" id="adres" rows="2" placeholder="Kişinin adresi..."></textarea>
+                </div>
+            </div>
+            
+            <!-- Borç Bilgileri -->
+            <div style="margin-bottom: 2rem;" id="borcBilgileri">
+                <h4 style="font-size: 0.875rem; font-weight: 600; color: var(--gray-600); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                    <i class="fas fa-coins" style="margin-right: 0.5rem;"></i>Tahsilat Bilgileri
+                </h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label required">Toplam Tutar (₺)</label>
+                        <input type="number" class="form-control" id="toplam_borc" step="0.01" min="0" placeholder="0.00" required>
+                    </div>
+                    <div class="form-group" id="kalanBorcGroup" style="display: none;">
+                        <label class="form-label">Kalan Tutar (₺)</label>
+                        <input type="number" class="form-control" id="kalan_borc" step="0.01" min="0" placeholder="0.00" readonly style="background: var(--gray-100);">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Notlar -->
+            <div class="form-group">
+                <label class="form-label">Notlar</label>
+                <textarea class="form-control" id="notlar" rows="3" placeholder="Ek notlar..."></textarea>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-save"></i> {% if id %}Güncelle{% else %}Kaydet{% endif %}
+                </button>
+                <a href="{{ url_for('alacaklilar.liste') }}" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-times"></i> İptal
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module">
+    import { Alacaklilar, Yardimci } from '{{ url_for("static", filename="js/db.js") }}';
+    
+    const editId = '{{ id if id else "" }}';
+    
+    // Düzenleme modunda veriyi yükle
+    async function verileriYukle() {
+        if (editId) {
+            const kisi = await Alacaklilar.getir(editId);
+            if (kisi) {
+                document.getElementById('isim').value = kisi.isim || '';
+                document.getElementById('soyisim').value = kisi.soyisim || '';
+                document.getElementById('telefon').value = kisi.telefon || '';
+                document.getElementById('adres').value = kisi.adres || '';
+                document.getElementById('toplam_borc').value = kisi.toplam_borc || 0;
+                document.getElementById('kalan_borc').value = kisi.kalan_borc || 0;
+                document.getElementById('notlar').value = kisi.notlar || '';
+                
+                // Düzenleme modunda kalan tutar göster
+                document.getElementById('kalanBorcGroup').style.display = 'block';
+            }
+        }
+    }
+    
+    // Form submit
+    document.getElementById('tahsilatForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const toplamBorc = parseFloat(document.getElementById('toplam_borc').value);
+        
+        const kisi = {
+            isim: document.getElementById('isim').value.trim(),
+            soyisim: document.getElementById('soyisim').value.trim(),
+            telefon: document.getElementById('telefon').value.trim(),
+            adres: document.getElementById('adres').value.trim(),
+            toplam_borc: toplamBorc,
+            notlar: document.getElementById('notlar').value.trim()
+        };
+        
+        // Yeni kayıtta kalan tutar = toplam tutar
+        if (!editId) {
+            kisi.kalan_borc = toplamBorc;
+            kisi.odemeler = [];
+        }
+        
+        try {
+            if (editId) {
+                await Alacaklilar.guncelle(editId, kisi);
+                Toast.success('Kayıt başarıyla güncellendi!');
+            } else {
+                await Alacaklilar.ekle(kisi);
+                Toast.success('Kayıt başarıyla eklendi!');
+            }
+            
+            setTimeout(() => {
+                window.location.href = '{{ url_for("alacaklilar.liste") }}';
+            }, 1000);
+        } catch (error) {
+            Toast.error('İşlem sırasında hata oluştu!');
+            console.error(error);
+        }
+    });
+    
+    verileriYukle();
+</script>
+{% endblock %}

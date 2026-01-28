@@ -1,0 +1,480 @@
+{% extends 'base.html' %}
+
+{% block title %}Tahsilat Bekleyenler - Kişisel Muhasebe{% endblock %}
+
+{% block page_title %}Tahsilat Bekleyenler{% endblock %}
+{% block page_subtitle %}Bekleyen ödemelerinizi takip edin{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('main.index') }}" class="btn btn-secondary">
+    <i class="fas fa-home"></i> Dashboard'a Dön
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tahsilat-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: var(--radius-xl);
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: var(--shadow);
+        border-left: 4px solid #a78bfa;
+        transition: var(--transition);
+    }
+    .tahsilat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+    .tahsilat-card.uyari {
+        border-left-color: #f59e0b;
+    }
+    .tahsilat-card.tehlike {
+        border-left-color: #ef4444;
+    }
+    .tahsilat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+    .tahsilat-info h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--gray-800);
+        margin: 0 0 0.25rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .tahsilat-info p {
+        font-size: 0.875rem;
+        color: var(--gray-500);
+        margin: 0;
+    }
+    .tahsilat-borc {
+        text-align: right;
+    }
+    .tahsilat-borc .toplam {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+    }
+    .tahsilat-borc .kalan {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #7c3aed;
+    }
+    .progress-container {
+        background: var(--gray-200);
+        border-radius: 9999px;
+        height: 8px;
+        margin: 1rem 0;
+        overflow: hidden;
+    }
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #10b981, #34d399);
+        border-radius: 9999px;
+        transition: width 0.5s ease;
+    }
+    .tahsilat-meta {
+        display: flex;
+        gap: 1.5rem;
+        font-size: 0.875rem;
+        color: var(--gray-600);
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+    .tahsilat-meta i {
+        margin-right: 0.5rem;
+        color: var(--gray-400);
+    }
+    .tahsilat-actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+    }
+    .son-odeme-badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 9999px;
+        font-weight: 600;
+    }
+    .son-odeme-badge.yeni {
+        background: #d1fae5;
+        color: #059669;
+    }
+    .son-odeme-badge.normal {
+        background: #dbeafe;
+        color: #2563eb;
+    }
+    .son-odeme-badge.uyari {
+        background: #fef3c7;
+        color: #d97706;
+    }
+    .son-odeme-badge.tehlike {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+    .son-odeme-badge.hic {
+        background: var(--gray-100);
+        color: var(--gray-600);
+    }
+    
+    /* Filtre Bar */
+    .filter-bar {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        background: rgba(255,255,255,0.95);
+        padding: 1rem;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        align-items: flex-end;
+    }
+    .filter-bar .form-group {
+        margin: 0;
+        min-width: 200px;
+    }
+    
+    /* Tahsilat Geçmişi */
+    .tahsilat-gecmisi-container {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background: var(--gray-50);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--gray-200);
+    }
+    
+    .tahsilat-gecmisi-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--gray-600);
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .tahsilat-gecmisi-list {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    
+    .tahsilat-gecmisi-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        background: white;
+        border-radius: var(--radius);
+        border: 1px solid var(--gray-200);
+        font-size: 0.8rem;
+        transition: var(--transition);
+    }
+    
+    .tahsilat-gecmisi-item:hover {
+        border-color: var(--primary-300);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .tahsilat-gecmisi-item .tutar {
+        font-weight: 600;
+        color: var(--gelir-color);
+    }
+    
+    .tahsilat-gecmisi-item .tarih {
+        color: var(--gray-500);
+        font-size: 0.75rem;
+    }
+    
+    .tahsilat-gecmisi-bos {
+        color: var(--gray-400);
+        font-size: 0.85rem;
+        font-style: italic;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Filtre Bar -->
+<div class="filter-bar fade-in">
+    <div class="form-group">
+        <label class="form-label">Sıralama</label>
+        <select class="form-control form-select" id="siralama">
+            <option value="borc_yuksek">Kalan Tahsilat (Yüksek → Düşük)</option>
+            <option value="odeme_eski">Son Ödeme (En Eski → Yeni)</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label class="form-label">Ara</label>
+        <input type="text" class="form-control" id="aramaInput" placeholder="İsim ile ara...">
+    </div>
+</div>
+
+<!-- Toplam Özet -->
+<div class="card fade-in" style="margin-bottom: 1.5rem;">
+    <div class="card-body" style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #a78bfa, #7c3aed); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-hand-holding-dollar" style="font-size: 1.5rem; color: white;"></i>
+            </div>
+            <div>
+                <p style="margin: 0; color: var(--gray-500); font-size: 0.875rem;">Toplam Bekleyen Tahsilat</p>
+                <h3 id="toplamTahsilat" style="margin: 0; font-size: 1.75rem; font-weight: 700; color: #7c3aed;">0,00 ₺</h3>
+            </div>
+        </div>
+        <div style="text-align: right;">
+            <span id="kayitSayisi" style="color: var(--gray-500);">0 kişi</span>
+        </div>
+    </div>
+</div>
+
+<!-- Tahsilat Listesi -->
+<div id="tahsilatContainer">
+    <div class="empty-state fade-in" style="background: rgba(255,255,255,0.95); border-radius: var(--radius-xl); padding: 4rem 2rem;">
+        <div class="empty-state-icon" style="font-size: 4rem; color: var(--gray-300);">
+            <i class="fas fa-users"></i>
+        </div>
+        <h3 style="color: var(--gray-600);">Henüz kayıt yok</h3>
+        <p style="color: var(--gray-500);">Yeni kayıt ekleyerek başlayın</p>
+        <a href="{{ url_for('alacaklilar.ekle') }}" class="btn btn-primary" style="margin-top: 1rem;">
+            <i class="fas fa-user-plus"></i> Yeni Kayıt Ekle
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module">
+    import { Alacaklilar, Yardimci } from '{{ url_for("static", filename="js/db.js") }}';
+    
+    let tumListe = [];
+    
+    // Son ödeme bilgisini hesapla
+    function sonOdemeBilgisi(kisi) {
+        const odemeler = kisi.odemeler || [];
+        
+        if (odemeler.length === 0) {
+            return {
+                tarih: null,
+                gunOnce: null,
+                text: 'Hiç ödeme yok',
+                sinif: 'hic'
+            };
+        }
+        
+        // En son ödemeyi bul
+        const sonOdeme = odemeler.reduce((en, odeme) => {
+            const tarih = new Date(odeme.tarih);
+            return tarih > new Date(en.tarih) ? odeme : en;
+        }, odemeler[0]);
+        
+        const sonOdemeTarih = new Date(sonOdeme.tarih);
+        const bugun = new Date();
+        const farkMs = bugun - sonOdemeTarih;
+        const gunFarki = Math.floor(farkMs / (1000 * 60 * 60 * 24));
+        
+        let text, sinif;
+        
+        if (gunFarki === 0) {
+            text = 'Bugün ödeme yaptı';
+            sinif = 'yeni';
+        } else if (gunFarki === 1) {
+            text = 'Dün ödeme yaptı';
+            sinif = 'yeni';
+        } else if (gunFarki <= 7) {
+            text = `${gunFarki} gün önce ödedi`;
+            sinif = 'normal';
+        } else if (gunFarki <= 30) {
+            text = `${gunFarki} gün önce ödedi`;
+            sinif = 'uyari';
+        } else if (gunFarki <= 60) {
+            text = `${gunFarki} gün önce ödedi`;
+            sinif = 'uyari';
+        } else {
+            const ay = Math.floor(gunFarki / 30);
+            text = ay === 1 ? '1 aydan fazla' : `${ay} aydan fazla`;
+            sinif = 'tehlike';
+        }
+        
+        return {
+            tarih: sonOdemeTarih,
+            gunOnce: gunFarki,
+            text,
+            sinif
+        };
+    }
+    
+    // Listeyi sırala ve filtrele
+    function siralaVeFiltrele() {
+        const siralama = document.getElementById('siralama').value;
+        const arama = document.getElementById('aramaInput').value.toLowerCase().trim();
+        
+        let filtrelenmis = [...tumListe];
+        
+        // Arama filtresi
+        if (arama) {
+            filtrelenmis = filtrelenmis.filter(kisi => 
+                `${kisi.isim} ${kisi.soyisim}`.toLowerCase().includes(arama)
+            );
+        }
+        
+        // Sıralama
+        if (siralama === 'borc_yuksek') {
+            // Kalan borç yüksekten düşüğe
+            filtrelenmis.sort((a, b) => (parseFloat(b.kalan_borc) || 0) - (parseFloat(a.kalan_borc) || 0));
+        } else if (siralama === 'odeme_eski') {
+            // Son ödeme en eski en üstte (en uzun süredir ödeme yapmayan)
+            filtrelenmis.sort((a, b) => {
+                const aOdeme = sonOdemeBilgisi(a);
+                const bOdeme = sonOdemeBilgisi(b);
+                
+                // Hiç ödeme yapmayanlar en üstte
+                if (aOdeme.gunOnce === null && bOdeme.gunOnce === null) return 0;
+                if (aOdeme.gunOnce === null) return -1;
+                if (bOdeme.gunOnce === null) return 1;
+                
+                // Gün farkı yüksek olan üstte (en eski)
+                return bOdeme.gunOnce - aOdeme.gunOnce;
+            });
+        }
+        
+        renderListe(filtrelenmis);
+    }
+    
+    function renderListe(liste) {
+        const container = document.getElementById('tahsilatContainer');
+        const toplamEl = document.getElementById('toplamTahsilat');
+        const sayiEl = document.getElementById('kayitSayisi');
+        
+        if (liste.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state fade-in" style="background: rgba(255,255,255,0.95); border-radius: var(--radius-xl); padding: 4rem 2rem;">
+                    <div class="empty-state-icon" style="font-size: 4rem; color: var(--gray-300);">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3 style="color: var(--gray-600);">Kayıt bulunamadı</h3>
+                    <p style="color: var(--gray-500);">Filtrelerinizi değiştirmeyi deneyin</p>
+                    <a href="{{ url_for('alacaklilar.ekle') }}" class="btn btn-primary" style="margin-top: 1rem;">
+                        <i class="fas fa-user-plus"></i> Yeni Kayıt Ekle
+                    </a>
+                </div>
+            `;
+            toplamEl.textContent = '0,00 ₺';
+            sayiEl.textContent = '0 kişi';
+            return;
+        }
+        
+        const toplam = liste.reduce((t, a) => t + (parseFloat(a.kalan_borc) || 0), 0);
+        toplamEl.textContent = Yardimci.paraFormat(toplam);
+        sayiEl.textContent = `${liste.length} kişi`;
+        
+        container.innerHTML = liste.map((kisi, index) => {
+            const toplamBorc = parseFloat(kisi.toplam_borc) || 0;
+            const kalanBorc = parseFloat(kisi.kalan_borc) || 0;
+            const odenen = toplamBorc - kalanBorc;
+            const yuzde = toplamBorc > 0 ? Math.round((odenen / toplamBorc) * 100) : 0;
+            const odeme = sonOdemeBilgisi(kisi);
+            
+            // Kart border rengi
+            let kartSinif = '';
+            if (odeme.sinif === 'tehlike') kartSinif = 'tehlike';
+            else if (odeme.sinif === 'uyari') kartSinif = 'uyari';
+            
+            // Tahsilat geçmişi
+            const odemeler = kisi.odemeler || [];
+            const tahsilatGecmisi = odemeler.length > 0 ? odemeler.slice().reverse().slice(0, 5).map(odeme => `
+                <div class="tahsilat-gecmisi-item">
+                    <span class="tutar">+${Yardimci.paraFormat(odeme.tutar)}</span>
+                    <span class="tarih">${Yardimci.tarihFormat(odeme.tarih)}</span>
+                </div>
+            `).join('') : '<span class="tahsilat-gecmisi-bos">Henüz tahsilat yapılmamış</span>';
+            
+            return `
+                <div class="tahsilat-card ${kartSinif} fade-in" style="animation-delay: ${index * 0.05}s;">
+                    <!-- Tahsilat Geçmişi -->
+                    <div class="tahsilat-gecmisi-container">
+                        <div class="tahsilat-gecmisi-title">
+                            <i class="fas fa-history" style="color: var(--primary-500);"></i>
+                            Tahsilat Geçmişi
+                        </div>
+                        <div class="tahsilat-gecmisi-list">
+                            ${tahsilatGecmisi}
+                        </div>
+                    </div>
+                    
+                    <div class="tahsilat-header">
+                        <div class="tahsilat-info">
+                            <h3>
+                                <i class="fas fa-user" style="color: #a78bfa;"></i>
+                                ${kisi.isim} ${kisi.soyisim}
+                                <span class="son-odeme-badge ${odeme.sinif}">
+                                    <i class="fas ${odeme.sinif === 'hic' ? 'fa-clock' : 'fa-calendar-check'}"></i>
+                                    ${odeme.text}
+                                </span>
+                            </h3>
+                            <p>Eklenme: ${Yardimci.tarihFormat(kisi.olusturma_tarihi)}</p>
+                        </div>
+                        <div class="tahsilat-borc">
+                            <div class="toplam">Toplam: ${Yardimci.paraFormat(toplamBorc)}</div>
+                            <div class="kalan">${Yardimci.paraFormat(kalanBorc)}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="tahsilat-meta">
+                        <span><i class="fas fa-phone"></i>${kisi.telefon || '-'}</span>
+                        <span><i class="fas fa-map-marker-alt"></i>${kisi.adres || '-'}</span>
+                        <span><i class="fas fa-history"></i>${odemeler.length} ödeme yapıldı</span>
+                    </div>
+                    
+                    <div class="progress-container">
+                        <div class="progress-bar" style="width: ${yuzde}%;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--gray-500); margin-bottom: 1rem;">
+                        <span>Tahsil edilen: ${Yardimci.paraFormat(odenen)}</span>
+                        <span>%${yuzde} tamamlandı</span>
+                    </div>
+                    
+                    <div class="tahsilat-actions">
+                        <a href="{{ url_for('alacaklilar.odeme', id='') }}${kisi.id}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-money-bill-wave"></i> Tahsilat Yap
+                        </a>
+                        <a href="{{ url_for('alacaklilar.duzenle', id='') }}${kisi.id}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-edit"></i> Düzenle
+                        </a>
+                        <button class="btn btn-danger btn-sm" onclick="kayitSil('${kisi.id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    window.kayitSil = async function(id) {
+        if (confirm('Bu kaydı silmek istediğinizden emin misiniz? Tüm ödeme geçmişi de silinecektir.')) {
+            try {
+                await Alacaklilar.sil(id);
+                Toast.success('Kayıt silindi!');
+            } catch (error) {
+                Toast.error('Silme işlemi başarısız!');
+            }
+        }
+    };
+    
+    // Event listeners
+    document.getElementById('siralama').addEventListener('change', siralaVeFiltrele);
+    document.getElementById('aramaInput').addEventListener('input', siralaVeFiltrele);
+    
+    // Realtime dinle
+    Alacaklilar.dinle(liste => {
+        tumListe = liste;
+        siralaVeFiltrele();
+    });
+</script>
+{% endblock %}

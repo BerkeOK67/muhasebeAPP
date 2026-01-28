@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Kişisel Muhasebe{% endblock %}</title>
+    
+    <!-- Google Fonts - Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Ana CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Saat Dilimi Modülü -->
+    <script type="module" src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+    
+    <!-- Veritabanı Modülü -->
+    <script type="module" src="{{ url_for('static', filename='js/db.js') }}"></script>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="sidebar-logo-icon">
+                        💰
+                    </div>
+                    <div class="sidebar-logo-text">
+                        <h1>Kişisel Muhasebe</h1>
+                        <span>Finans Takip</span>
+                    </div>
+                </div>
+                <button class="sidebar-toggle" id="sidebarToggle" title="Menüyü Daralt/Genişlet">
+                    <i class="fas fa-angles-left" id="toggleIcon"></i>
+                </button>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <!-- Ana Menü -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Ana Menü</div>
+                    <a href="{{ url_for('main.index') }}" class="nav-item {% if request.endpoint == 'main.index' %}active{% endif %}">
+                        <i class="fas fa-home"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </div>
+                
+                <!-- İşlemler -->
+                <div class="nav-section">
+                    <div class="nav-section-title">İşlemler</div>
+                    <a href="{{ url_for('gelirler.liste') }}" class="nav-item {% if request.endpoint == 'gelirler.liste' %}active{% endif %}">
+                        <i class="fas fa-arrow-trend-up"></i>
+                        <span>Gelirler</span>
+                    </a>
+                    <a href="{{ url_for('giderler.liste') }}" class="nav-item {% if request.endpoint == 'giderler.liste' %}active{% endif %}">
+                        <i class="fas fa-arrow-trend-down"></i>
+                        <span>Giderler</span>
+                    </a>
+                </div>
+                
+                <!-- Tahsilat -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Tahsilat Bekleyenler</div>
+                    <a href="{{ url_for('alacaklilar.liste') }}" class="nav-item {% if request.endpoint == 'alacaklilar.liste' %}active{% endif %}">
+                        <i class="fas fa-hand-holding-dollar"></i>
+                        <span>Tahsilat Listesi</span>
+                    </a>
+                    <a href="{{ url_for('alacaklilar.ekle') }}" class="nav-item {% if request.endpoint == 'alacaklilar.ekle' %}active{% endif %}">
+                        <i class="fas fa-user-plus" style="color: #a78bfa;"></i>
+                        <span>Yeni Kayıt</span>
+                    </a>
+                    <a href="{{ url_for('alacaklilar.borcu_bitenler') }}" class="nav-item {% if request.endpoint == 'alacaklilar.borcu_bitenler' %}active{% endif %}">
+                        <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                        <span>Borcu Bitenler</span>
+                    </a>
+                </div>
+                
+                <!-- Hızlı İşlemler -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Hızlı İşlemler</div>
+                    <a href="{{ url_for('gelirler.ekle') }}" class="nav-item {% if request.endpoint == 'gelirler.ekle' or request.endpoint == 'gelirler.duzenle' %}active{% endif %}">
+                        <i class="fas fa-plus-circle" style="color: var(--primary-400);"></i>
+                        <span>Gelir Ekle</span>
+                    </a>
+                    <a href="{{ url_for('giderler.ekle') }}" class="nav-item {% if request.endpoint == 'giderler.ekle' or request.endpoint == 'giderler.duzenle' %}active{% endif %}">
+                        <i class="fas fa-minus-circle" style="color: #f87171;"></i>
+                        <span>Gider Ekle</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+        
+        <!-- Ana İçerik -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="main-header">
+                <div class="header-title">
+                    <h2>{% block page_title %}Dashboard{% endblock %}</h2>
+                    <p>{% block page_subtitle %}Finansal durumunuza genel bakış{% endblock %}</p>
+                </div>
+                <div class="header-actions">
+                    {% block header_actions %}{% endblock %}
+                </div>
+            </header>
+            
+            <!-- İçerik Alanı -->
+            <div class="content-area">
+                <!-- Flash Mesajları -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} fade-in">
+                                <i class="fas {% if category == 'success' %}fa-check-circle{% elif category == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
+                                <span>{{ message }}</span>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+    
+    <!-- Firebase Durum Göstergesi -->
+    <div id="firebaseStatus" style="position: fixed; bottom: 1rem; right: 1rem; z-index: 1000;">
+        <div id="firebaseStatusBtn" style="
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        ">
+            <span id="firebaseStatusIcon" style="width: 10px; height: 10px; border-radius: 50%;"></span>
+            <span id="firebaseStatusText">Yükleniyor...</span>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { init, isOnline } from '{{ url_for("static", filename="js/db.js") }}';
+        
+        async function updateFirebaseStatus() {
+            await init();
+            const online = isOnline();
+            const btn = document.getElementById('firebaseStatusBtn');
+            const icon = document.getElementById('firebaseStatusIcon');
+            const text = document.getElementById('firebaseStatusText');
+            
+            if (online) {
+                icon.style.background = '#22c55e';
+                text.textContent = '🔥 Firebase Bağlı';
+                btn.style.background = 'rgba(34, 197, 94, 0.1)';
+                btn.style.color = '#16a34a';
+            } else {
+                icon.style.background = '#ef4444';
+                text.textContent = '❌ Firebase Bağlantısı Yok';
+                btn.style.background = 'rgba(239, 68, 68, 0.1)';
+                btn.style.color = '#dc2626';
+            }
+        }
+        
+        updateFirebaseStatus();
+    </script>
+    
+    <script>
+        // Para formatla
+        function formatMoney(amount) {
+            return new Intl.NumberFormat('tr-TR', { 
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2 
+            }).format(amount) + ' ₺';
+        }
+        
+        // Sidebar Toggle
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.querySelector('.main-content');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const toggleIcon = document.getElementById('toggleIcon');
+        
+        if (localStorage.getItem('sidebarCollapsed') === 'true') {
+            sidebar.classList.add('collapsed');
+            mainContent.classList.add('expanded');
+            toggleIcon.classList.remove('fa-angles-left');
+            toggleIcon.classList.add('fa-angles-right');
+        }
+        
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            
+            if (sidebar.classList.contains('collapsed')) {
+                toggleIcon.classList.remove('fa-angles-left');
+                toggleIcon.classList.add('fa-angles-right');
+                localStorage.setItem('sidebarCollapsed', 'true');
+            } else {
+                toggleIcon.classList.remove('fa-angles-right');
+                toggleIcon.classList.add('fa-angles-left');
+                localStorage.setItem('sidebarCollapsed', 'false');
+            }
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

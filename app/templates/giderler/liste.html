@@ -1,0 +1,515 @@
+{% extends 'base.html' %}
+
+{% block title %}Giderler - Kişisel Muhasebe{% endblock %}
+
+{% block page_title %}Giderler{% endblock %}
+{% block page_subtitle %}Tüm giderlerinizi görüntüleyin ve yönetin{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('giderler.ekle') }}" class="btn btn-danger">
+    <i class="fas fa-plus"></i> Yeni Gider Ekle
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .gider-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: var(--radius-xl);
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: var(--shadow);
+        border-left: 4px solid #f87171;
+        transition: var(--transition);
+    }
+    .gider-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+    .gider-card.taksitli {
+        border-left-color: #f59e0b;
+        background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(254,243,199,0.2));
+    }
+    .gider-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+    .gider-info h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--gray-800);
+        margin: 0 0 0.25rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .gider-info p {
+        font-size: 0.875rem;
+        color: var(--gray-500);
+        margin: 0;
+    }
+    .gider-tutar {
+        text-align: right;
+    }
+    .gider-tutar .label {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+    }
+    .gider-tutar .amount {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #ef4444;
+    }
+    .gider-meta {
+        display: flex;
+        gap: 1.5rem;
+        font-size: 0.875rem;
+        color: var(--gray-600);
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+    .gider-meta i {
+        margin-right: 0.5rem;
+        color: var(--gray-400);
+    }
+    .gider-actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+    }
+    .taksit-badge {
+        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        color: white;
+        font-size: 0.7rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-weight: 600;
+    }
+    .taksit-info-box {
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        border-radius: var(--radius-lg);
+        padding: 1rem;
+        margin: 1rem 0;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        text-align: center;
+    }
+    .taksit-info-item {
+        padding: 0.5rem;
+    }
+    .taksit-info-item .label {
+        font-size: 0.75rem;
+        color: #92400e;
+        margin-bottom: 0.25rem;
+    }
+    .taksit-info-item .value {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #78350f;
+    }
+    .taksit-info-item .value.current {
+        color: #059669;
+        font-size: 1.5rem;
+    }
+    .progress-container {
+        background: rgba(0,0,0,0.1);
+        border-radius: 9999px;
+        height: 10px;
+        overflow: hidden;
+        margin-top: 0.5rem;
+    }
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #10b981, #34d399);
+        border-radius: 9999px;
+        transition: width 0.5s ease;
+    }
+    .kalan-taksit {
+        background: var(--gray-100);
+        border-radius: var(--radius);
+        padding: 0.75rem 1rem;
+        margin-top: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.875rem;
+    }
+    .kalan-taksit .kalan-label {
+        color: var(--gray-600);
+    }
+    .kalan-taksit .kalan-value {
+        font-weight: 700;
+        color: #f59e0b;
+    }
+    
+    /* Filtre Bar */
+    .filter-bar {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        background: rgba(255,255,255,0.95);
+        padding: 1rem;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+    }
+    .filter-bar .form-group {
+        margin: 0;
+        min-width: 150px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Filtre Bar -->
+<div class="filter-bar fade-in">
+    <div class="form-group">
+        <label class="form-label">Kategori</label>
+        <select class="form-control form-select" id="filterKategori">
+            <option value="">Tüm Kategoriler</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label class="form-label">Tür</label>
+        <select class="form-control form-select" id="filterTur">
+            <option value="">Tümü</option>
+            <option value="normal">Tek Seferlik</option>
+            <option value="taksit">Taksitli</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label class="form-label">Başlangıç</label>
+        <input type="date" class="form-control" id="filterBaslangic">
+    </div>
+    <div class="form-group">
+        <label class="form-label">Bitiş</label>
+        <input type="date" class="form-control" id="filterBitis">
+    </div>
+    <div class="form-group" style="display: flex; align-items: flex-end;">
+        <button class="btn btn-secondary" onclick="filtreleriTemizle()">
+            <i class="fas fa-times"></i> Temizle
+        </button>
+    </div>
+</div>
+
+<!-- Toplam -->
+<div class="card fade-in" style="margin-bottom: 1.5rem; animation-delay: 0.1s;">
+    <div class="card-body" style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #f87171, #ef4444); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-arrow-trend-down" style="font-size: 1.5rem; color: white;"></i>
+            </div>
+            <div>
+                <p style="margin: 0; color: var(--gray-500); font-size: 0.875rem;">Aylık Gider Toplamı</p>
+                <h3 id="toplamGider" style="margin: 0; font-size: 1.75rem; font-weight: 700; color: #ef4444;">0,00 ₺</h3>
+                <small style="color: var(--gray-400);">Taksitli giderler aylık tutar olarak hesaplanır</small>
+            </div>
+        </div>
+        <div style="text-align: right;">
+            <span id="kayitSayisi" style="color: var(--gray-500);">0 kayıt</span>
+        </div>
+    </div>
+</div>
+
+<!-- Gider Listesi -->
+<div id="giderContainer">
+    <div class="empty-state fade-in" style="background: rgba(255,255,255,0.95); border-radius: var(--radius-xl); padding: 4rem 2rem;">
+        <div class="empty-state-icon" style="font-size: 4rem; color: var(--gray-300);">
+            <i class="fas fa-receipt"></i>
+        </div>
+        <h3 style="color: var(--gray-600);">Henüz gider kaydı yok</h3>
+        <p style="color: var(--gray-500);">Yeni gider ekleyerek başlayın</p>
+        <a href="{{ url_for('giderler.ekle') }}" class="btn btn-danger" style="margin-top: 1rem;">
+            <i class="fas fa-plus"></i> Yeni Gider Ekle
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module">
+    import { Giderler, Kategoriler, Yardimci } from '{{ url_for("static", filename="js/db.js") }}';
+    
+    let tumGiderler = [];
+    
+    // Kategorileri yükle
+    function kategorileriYukle() {
+        const select = document.getElementById('filterKategori');
+        Kategoriler.gider.forEach(kat => {
+            const option = document.createElement('option');
+            option.value = kat.id;
+            option.textContent = kat.ad;
+            select.appendChild(option);
+        });
+    }
+    
+    // Taksit durumunu hesapla
+    function taksitDurumuHesapla(gider) {
+        if (!gider.taksitli) return null;
+        
+        const ilkTarih = new Date(gider.ilk_taksit_tarihi || gider.tarih);
+        const bugun = new Date();
+        const taksitSayisi = gider.taksit_sayisi || 1;
+        const aylikTaksit = gider.aylik_taksit || (gider.tutar / taksitSayisi);
+        
+        // Kaç ay geçti
+        const ayFarki = (bugun.getFullYear() - ilkTarih.getFullYear()) * 12 + (bugun.getMonth() - ilkTarih.getMonth());
+        
+        // Mevcut taksit numarası (1'den başlar, max taksit sayısı kadar)
+        let mevcutTaksit = Math.max(1, Math.min(ayFarki + 1, taksitSayisi));
+        
+        // Eğer ilk taksit tarihi gelmediyse henüz 0. taksitteyiz
+        if (bugun < ilkTarih) {
+            mevcutTaksit = 0;
+        }
+        
+        // Ödenen ve kalan
+        const odenenTaksit = Math.min(mevcutTaksit, taksitSayisi);
+        const kalanTaksit = taksitSayisi - odenenTaksit;
+        const odenenTutar = odenenTaksit * aylikTaksit;
+        const kalanTutar = kalanTaksit * aylikTaksit;
+        const yuzde = Math.round((odenenTaksit / taksitSayisi) * 100);
+        
+        // Sonraki taksit tarihi
+        const sonrakiTaksitTarih = new Date(ilkTarih);
+        sonrakiTaksitTarih.setMonth(sonrakiTaksitTarih.getMonth() + odenenTaksit);
+        
+        return {
+            taksitSayisi,
+            mevcutTaksit: odenenTaksit,
+            kalanTaksit,
+            aylikTaksit,
+            odenenTutar,
+            kalanTutar,
+            yuzde,
+            sonrakiTaksitTarih: kalanTaksit > 0 ? sonrakiTaksitTarih : null,
+            tamamlandi: kalanTaksit === 0
+        };
+    }
+    
+    // Render işlemi
+    function renderGiderler(giderler) {
+        const container = document.getElementById('giderContainer');
+        const toplamEl = document.getElementById('toplamGider');
+        const kayitEl = document.getElementById('kayitSayisi');
+        
+        if (giderler.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state fade-in" style="background: rgba(255,255,255,0.95); border-radius: var(--radius-xl); padding: 4rem 2rem;">
+                    <div class="empty-state-icon" style="font-size: 4rem; color: var(--gray-300);">
+                        <i class="fas fa-receipt"></i>
+                    </div>
+                    <h3 style="color: var(--gray-600);">Kayıt bulunamadı</h3>
+                    <p style="color: var(--gray-500);">Filtrelerinizi değiştirmeyi deneyin</p>
+                </div>
+            `;
+            toplamEl.textContent = '0,00 ₺';
+            kayitEl.textContent = '0 kayıt';
+            return;
+        }
+        
+        // Tarihe göre sırala (yeniden eskiye)
+        giderler.sort((a, b) => new Date(b.tarih) - new Date(a.tarih));
+        
+        // Toplam hesabı: taksitli giderlerde aylık taksit, normal giderlerde toplam
+        const toplam = giderler.reduce((t, g) => {
+            if (g.taksitli) {
+                // Taksitli gider: aylık taksit tutarı
+                return t + (parseFloat(g.aylik_taksit) || (parseFloat(g.tutar) / (g.taksit_sayisi || 1)));
+            }
+            return t + (parseFloat(g.tutar) || 0);
+        }, 0);
+        toplamEl.textContent = Yardimci.paraFormat(toplam);
+        kayitEl.textContent = `${giderler.length} kayıt`;
+        
+        let html = '';
+        
+        giderler.forEach((gider, index) => {
+            const kategori = Yardimci.kategoriGetir('gider', gider.kategori);
+            
+            if (gider.taksitli) {
+                // Taksitli gider kartı
+                const durum = taksitDurumuHesapla(gider);
+                
+                html += `
+                    <div class="gider-card taksitli fade-in" style="animation-delay: ${index * 0.05}s;">
+                        <div class="gider-header">
+                            <div class="gider-info">
+                                <h3>
+                                    <i class="fas fa-credit-card" style="color: #f59e0b;"></i>
+                                    ${gider.aciklama || kategori.ad}
+                                    <span class="taksit-badge">
+                                        <i class="fas fa-layer-group"></i> 
+                                        ${durum.mevcutTaksit}/${durum.taksitSayisi}. Taksit
+                                    </span>
+                                </h3>
+                                <p><i class="fas fa-calendar" style="margin-right: 0.25rem;"></i> Başlangıç: ${Yardimci.tarihFormat(gider.tarih)}</p>
+                            </div>
+                            <div class="gider-tutar">
+                                <div class="label">Toplam</div>
+                                <div class="amount">-${Yardimci.paraFormat(gider.tutar)}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="gider-meta">
+                            <span><i class="fas ${kategori.icon}"></i>${kategori.ad}</span>
+                        </div>
+                        
+                        <div class="taksit-info-box">
+                            <div class="taksit-info-item">
+                                <div class="label">Aylık Taksit</div>
+                                <div class="value">${Yardimci.paraFormat(durum.aylikTaksit)}</div>
+                            </div>
+                            <div class="taksit-info-item">
+                                <div class="label">Mevcut Taksit</div>
+                                <div class="value current">${durum.mevcutTaksit}/${durum.taksitSayisi}</div>
+                            </div>
+                            <div class="taksit-info-item">
+                                <div class="label">Ödenen</div>
+                                <div class="value">${Yardimci.paraFormat(durum.odenenTutar)}</div>
+                            </div>
+                        </div>
+                        
+                        <div style="font-size: 0.8rem; color: var(--gray-600); margin-bottom: 0.5rem;">
+                            Taksit İlerlemesi
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-bar" style="width: ${durum.yuzde}%;"></div>
+                        </div>
+                        
+                        ${durum.kalanTaksit > 0 ? `
+                            <div class="kalan-taksit">
+                                <span class="kalan-label">
+                                    <i class="fas fa-hourglass-half" style="margin-right: 0.5rem;"></i>
+                                    Bekleyen ${durum.kalanTaksit} taksit
+                                    ${durum.sonrakiTaksitTarih ? `<span style="color: var(--gray-400);"> • Sonraki: ${Yardimci.tarihFormat(durum.sonrakiTaksitTarih)}</span>` : ''}
+                                </span>
+                                <span class="kalan-value">-${Yardimci.paraFormat(durum.kalanTutar)}</span>
+                            </div>
+                        ` : `
+                            <div class="kalan-taksit" style="background: #d1fae5;">
+                                <span style="color: #059669;">
+                                    <i class="fas fa-check-circle" style="margin-right: 0.5rem;"></i>
+                                    Tüm taksitler tamamlandı!
+                                </span>
+                            </div>
+                        `}
+                        
+                        <div class="gider-actions" style="margin-top: 1rem;">
+                            <a href="{{ url_for('giderler.duzenle', id='') }}${gider.id}" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-edit"></i> Düzenle
+                            </a>
+                            <button class="btn btn-danger btn-sm" onclick="giderSil('${gider.id}')">
+                                <i class="fas fa-trash"></i> Sil
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Normal tek seferlik gider kartı
+                html += `
+                    <div class="gider-card fade-in" style="animation-delay: ${index * 0.05}s;">
+                        <div class="gider-header">
+                            <div class="gider-info">
+                                <h3>
+                                    <i class="fas ${kategori.icon}" style="color: #f87171;"></i>
+                                    ${gider.aciklama || kategori.ad}
+                                </h3>
+                                <p><i class="fas fa-calendar" style="margin-right: 0.25rem;"></i> ${Yardimci.tarihFormat(gider.tarih)}</p>
+                            </div>
+                            <div class="gider-tutar">
+                                <div class="label">Tutar</div>
+                                <div class="amount">-${Yardimci.paraFormat(gider.tutar)}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="gider-meta">
+                            <span><i class="fas ${kategori.icon}"></i>${kategori.ad}</span>
+                        </div>
+                        
+                        <div class="gider-actions">
+                            <a href="{{ url_for('giderler.duzenle', id='') }}${gider.id}" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-edit"></i> Düzenle
+                            </a>
+                            <button class="btn btn-danger btn-sm" onclick="giderSil('${gider.id}')">
+                                <i class="fas fa-trash"></i> Sil
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+        
+        container.innerHTML = html;
+    }
+    
+    // Filtreleme
+    function filtrele() {
+        const kategori = document.getElementById('filterKategori').value;
+        const tur = document.getElementById('filterTur').value;
+        const baslangic = document.getElementById('filterBaslangic').value;
+        const bitis = document.getElementById('filterBitis').value;
+        
+        let filtrelenmis = [...tumGiderler];
+        
+        if (kategori) {
+            filtrelenmis = filtrelenmis.filter(g => g.kategori === kategori);
+        }
+        
+        if (tur === 'normal') {
+            filtrelenmis = filtrelenmis.filter(g => !g.taksitli);
+        } else if (tur === 'taksit') {
+            filtrelenmis = filtrelenmis.filter(g => g.taksitli);
+        }
+        
+        if (baslangic) {
+            filtrelenmis = filtrelenmis.filter(g => g.tarih >= baslangic);
+        }
+        
+        if (bitis) {
+            filtrelenmis = filtrelenmis.filter(g => g.tarih <= bitis);
+        }
+        
+        renderGiderler(filtrelenmis);
+    }
+    
+    // Filtreleri temizle
+    window.filtreleriTemizle = function() {
+        document.getElementById('filterKategori').value = '';
+        document.getElementById('filterTur').value = '';
+        document.getElementById('filterBaslangic').value = '';
+        document.getElementById('filterBitis').value = '';
+        renderGiderler(tumGiderler);
+    };
+    
+    // Gider sil
+    window.giderSil = async function(id) {
+        if (confirm('Bu gideri silmek istediğinizden emin misiniz?')) {
+            try {
+                await Giderler.sil(id);
+                Toast.success('Gider silindi!');
+            } catch (error) {
+                Toast.error('Silme işlemi başarısız!');
+            }
+        }
+    };
+    
+    // Filtre event listener'ları
+    document.getElementById('filterKategori').addEventListener('change', filtrele);
+    document.getElementById('filterTur').addEventListener('change', filtrele);
+    document.getElementById('filterBaslangic').addEventListener('change', filtrele);
+    document.getElementById('filterBitis').addEventListener('change', filtrele);
+    
+    // Başlangıç
+    kategorileriYukle();
+    
+    // Realtime dinle
+    Giderler.dinle(giderler => {
+        tumGiderler = giderler;
+        filtrele();
+    });
+</script>
+{% endblock %}

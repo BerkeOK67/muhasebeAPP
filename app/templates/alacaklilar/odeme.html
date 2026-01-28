@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+
+{% block title %}Tahsilat Yap - Kişisel Muhasebe{% endblock %}
+
+{% block page_title %}Tahsilat Yap{% endblock %}
+{% block page_subtitle %}Ödeme tahsil edin{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('main.index') }}" class="btn btn-secondary">
+    <i class="fas fa-home"></i> Dashboard'a Dön
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tahsilat-ozet {
+        background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+        color: white;
+        border-radius: var(--radius-xl);
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+    }
+    .tahsilat-ozet h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0 0 1.5rem 0;
+        opacity: 0.9;
+    }
+    .tahsilat-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+    }
+    .tahsilat-stat {
+        text-align: center;
+    }
+    .tahsilat-stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+    .tahsilat-stat-label {
+        font-size: 0.8rem;
+        opacity: 0.8;
+    }
+    .odeme-gecmisi {
+        margin-top: 2rem;
+    }
+    .odeme-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background: var(--gray-50);
+        border-radius: var(--radius);
+        margin-bottom: 0.5rem;
+    }
+    .odeme-item:nth-child(even) {
+        background: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="tahsilatContainer">
+    <div style="text-align: center; padding: 4rem;">
+        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--gray-400);"></i>
+        <p style="margin-top: 1rem; color: var(--gray-500);">Yükleniyor...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module">
+    import { Alacaklilar, Yardimci } from '{{ url_for("static", filename="js/db.js") }}';
+    
+    const kisiId = '{{ id }}';
+    let kisiData = null;
+    
+    async function sayfaYukle() {
+        kisiData = await Alacaklilar.getir(kisiId);
+        
+        if (!kisiData) {
+            document.getElementById('tahsilatContainer').innerHTML = `
+                <div class="alert alert-error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    Kayıt bulunamadı!
+                </div>
+                <a href="{{ url_for('alacaklilar.liste') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Listeye Dön
+                </a>
+            `;
+            return;
+        }
+        
+        render();
+    }
+    
+    function render() {
+        const toplamTutar = parseFloat(kisiData.toplam_borc) || 0;
+        const kalanTutar = parseFloat(kisiData.kalan_borc) || 0;
+        const tahsilEdilen = toplamTutar - kalanTutar;
+        const yuzde = toplamTutar > 0 ? Math.round((tahsilEdilen / toplamTutar) * 100) : 0;
+        const odemeler = kisiData.odemeler || [];
+        
+        document.getElementById('tahsilatContainer').innerHTML = `
+            <!-- Özet -->
+            <div class="tahsilat-ozet fade-in">
+                <h2><i class="fas fa-user" style="margin-right: 0.5rem;"></i>${kisiData.isim} ${kisiData.soyisim}</h2>
+                <div class="tahsilat-stats">
+                    <div class="tahsilat-stat">
+                        <div class="tahsilat-stat-value">${Yardimci.paraFormat(toplamTutar)}</div>
+                        <div class="tahsilat-stat-label">Toplam Tutar</div>
+                    </div>
+                    <div class="tahsilat-stat">
+                        <div class="tahsilat-stat-value">${Yardimci.paraFormat(tahsilEdilen)}</div>
+                        <div class="tahsilat-stat-label">Tahsil Edilen</div>
+                    </div>
+                    <div class="tahsilat-stat">
+                        <div class="tahsilat-stat-value">${Yardimci.paraFormat(kalanTutar)}</div>
+                        <div class="tahsilat-stat-label">Kalan</div>
+                    </div>
+                </div>
+                <div style="margin-top: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.5rem;">
+                        <span>İlerleme</span>
+                        <span>%${yuzde}</span>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.3); border-radius: 9999px; height: 10px;">
+                        <div style="background: white; height: 100%; border-radius: 9999px; width: ${yuzde}%; transition: width 0.5s;"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <!-- Tahsilat Formu -->
+                <div class="card fade-in" style="animation-delay: 0.1s;">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-money-bill-wave" style="margin-right: 0.5rem; color: var(--primary-500);"></i>
+                            Tahsilat Yap
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="tahsilatForm">
+                            <div class="form-group">
+                                <label class="form-label required">Tahsilat Tarihi</label>
+                                <input type="date" class="form-control" id="tahsilatTarihi" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label required">Tahsilat Tutarı (₺)</label>
+                                <input type="number" class="form-control" id="tahsilatTutari" 
+                                    step="0.01" min="0.01" max="${kalanTutar}" 
+                                    placeholder="0.00" required
+                                    style="font-size: 1.5rem; font-weight: 600; text-align: center;">
+                                <small style="color: var(--gray-500); display: block; margin-top: 0.5rem; text-align: center;">
+                                    Maksimum: ${Yardimci.paraFormat(kalanTutar)}
+                                </small>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 1.5rem;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="setTutar(${kalanTutar * 0.25})">%25</button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="setTutar(${kalanTutar * 0.50})">%50</button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="setTutar(${kalanTutar * 0.75})">%75</button>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="setTutar(${kalanTutar})">Tamamı</button>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-success btn-lg" style="width: 100%;">
+                                <i class="fas fa-check"></i> Tahsilatı Kaydet
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Ödeme Geçmişi -->
+                <div class="card fade-in" style="animation-delay: 0.2s;">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-history" style="margin-right: 0.5rem; color: var(--gray-500);"></i>
+                            Tahsilat Geçmişi
+                        </h3>
+                    </div>
+                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                        ${odemeler.length === 0 ? `
+                            <div style="text-align: center; padding: 2rem; color: var(--gray-500);">
+                                <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+                                Henüz tahsilat yapılmamış
+                            </div>
+                        ` : odemeler.slice().reverse().map((odeme, i) => `
+                            <div class="odeme-item">
+                                <div>
+                                    <strong style="color: var(--primary-600);">+${Yardimci.paraFormat(odeme.tutar)}</strong>
+                                    <div style="font-size: 0.8rem; color: var(--gray-500);">${Yardimci.tarihFormat(odeme.tarih)}</div>
+                                </div>
+                                <span class="badge badge-gelir">
+                                    <i class="fas fa-check"></i> Tahsil Edildi
+                                </span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Tarih alanını bugünün tarihiyle doldur
+        const tarihInput = document.getElementById('tahsilatTarihi');
+        if (tarihInput) {
+            tarihInput.value = Yardimci.bugunTarih();
+        }
+        
+        // Form submit event'i
+        document.getElementById('tahsilatForm').addEventListener('submit', tahsilatYap);
+    }
+    
+    window.setTutar = function(tutar) {
+        document.getElementById('tahsilatTutari').value = tutar.toFixed(2);
+    };
+    
+    async function tahsilatYap(e) {
+        e.preventDefault();
+        
+        const tutar = parseFloat(document.getElementById('tahsilatTutari').value);
+        const tarih = document.getElementById('tahsilatTarihi').value;
+        
+        if (tutar <= 0) {
+            Toast.error('Geçerli bir tutar girin!');
+            return;
+        }
+        
+        if (!tarih) {
+            Toast.error('Lütfen tahsilat tarihini seçin!');
+            return;
+        }
+        
+        // Tarihi ISO formatına çevir
+        const odemeTarihi = new Date(tarih + 'T00:00:00').toISOString();
+        
+        try {
+            const sonuc = await Alacaklilar.odemeYap(kisiId, tutar, odemeTarihi);
+            
+            if (sonuc.tamamenOdendi) {
+                Toast.success('🎉 Tahsilat tamamlandı! Kayıt silindi.');
+                setTimeout(() => {
+                    window.location.href = '{{ url_for("alacaklilar.liste") }}';
+                }, 1500);
+            } else {
+                Toast.success(`Tahsilat yapıldı! Kalan: ${Yardimci.paraFormat(sonuc.kalan)}`);
+                // Sayfayı yenile
+                kisiData = await Alacaklilar.getir(kisiId);
+                render();
+            }
+        } catch (error) {
+            Toast.error(error.message || 'Tahsilat işlemi başarısız!');
+        }
+    }
+    
+    sayfaYukle();
+</script>
+{% endblock %}

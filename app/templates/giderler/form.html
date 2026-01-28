@@ -1,0 +1,324 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if id %}Gider Düzenle{% else %}Yeni Gider{% endif %} - Kişisel Muhasebe{% endblock %}
+
+{% block page_title %}{% if id %}Gider Düzenle{% else %}Yeni Gider Ekle{% endif %}{% endblock %}
+{% block page_subtitle %}{% if id %}Mevcut gider kaydını düzenleyin{% else %}Yeni bir gider kaydı oluşturun{% endif %}{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('main.index') }}" class="btn btn-secondary">
+    <i class="fas fa-home"></i> Dashboard'a Dön
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .taksit-container {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border: 2px solid #f59e0b;
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        margin-top: 1rem;
+        display: none;
+    }
+    .taksit-container.active {
+        display: block;
+        animation: fadeIn 0.3s ease;
+    }
+    .taksit-preview {
+        background: white;
+        border-radius: var(--radius);
+        padding: 1rem;
+        margin-top: 1rem;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    .taksit-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--gray-100);
+        font-size: 0.875rem;
+    }
+    .taksit-item:last-child {
+        border-bottom: none;
+    }
+    .checkbox-container {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem;
+        background: var(--gray-50);
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: var(--transition);
+    }
+    .checkbox-container:hover {
+        background: var(--gray-100);
+    }
+    .checkbox-container input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        accent-color: #f59e0b;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card fade-in" style="max-width: 800px;">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-arrow-trend-down" style="margin-right: 0.5rem; color: var(--gider-color);"></i>
+            Gider Bilgileri
+        </h3>
+    </div>
+    <div class="card-body">
+        <form id="giderForm">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label required">Tarih</label>
+                    <input type="date" class="form-control" id="tarih" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Toplam Tutar (₺)</label>
+                    <input type="number" class="form-control" id="tutar" step="0.01" min="0" placeholder="0.00" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label required">Kategori</label>
+                <select class="form-control form-select" id="kategori" required>
+                    <option value="">Kategori Seçin</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Açıklama</label>
+                <textarea class="form-control" id="aciklama" rows="2" placeholder="Gider hakkında detay..."></textarea>
+            </div>
+            
+            <!-- Taksit Seçeneği -->
+            {% if not id %}
+            <div class="form-group">
+                <label class="checkbox-container" id="taksitToggle">
+                    <input type="checkbox" id="taksitCheckbox">
+                    <div>
+                        <strong style="color: var(--gray-700);">
+                            <i class="fas fa-credit-card" style="margin-right: 0.5rem; color: #f59e0b;"></i>
+                            Taksitli İşlem
+                        </strong>
+                        <p style="margin: 0; font-size: 0.8rem; color: var(--gray-500);">
+                            Ödemeyi aylara bölerek kaydet
+                        </p>
+                    </div>
+                </label>
+                
+                <div class="taksit-container" id="taksitContainer">
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label class="form-label required">Taksit Sayısı</label>
+                        <select class="form-control form-select" id="taksitSayisi">
+                            <option value="2">2 Taksit</option>
+                            <option value="3">3 Taksit</option>
+                            <option value="4">4 Taksit</option>
+                            <option value="5">5 Taksit</option>
+                            <option value="6">6 Taksit</option>
+                            <option value="9">9 Taksit</option>
+                            <option value="12">12 Taksit</option>
+                        </select>
+                    </div>
+                    
+                    <div id="taksitOnizleme" class="taksit-preview">
+                        <!-- Taksit önizlemesi buraya gelecek -->
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="submit" class="btn btn-danger btn-lg">
+                    <i class="fas fa-save"></i> {% if id %}Güncelle{% else %}Kaydet{% endif %}
+                </button>
+                <a href="{{ url_for('giderler.liste') }}" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-times"></i> İptal
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module">
+    import { Giderler, Kategoriler, Yardimci } from '{{ url_for("static", filename="js/db.js") }}';
+    
+    const editId = '{{ id if id else "" }}';
+    
+    // Kategorileri yükle
+    function kategorileriYukle() {
+        const select = document.getElementById('kategori');
+        Kategoriler.gider.forEach(kat => {
+            const option = document.createElement('option');
+            option.value = kat.id;
+            option.innerHTML = `${kat.ad}`;
+            select.appendChild(option);
+        });
+    }
+    
+    // Taksit önizlemesi güncelle
+    function taksitOnizlemeGuncelle() {
+        const tutar = parseFloat(document.getElementById('tutar').value) || 0;
+        const taksitSayisi = parseInt(document.getElementById('taksitSayisi')?.value) || 2;
+        const baslangicTarih = document.getElementById('tarih').value;
+        const onizleme = document.getElementById('taksitOnizleme');
+        
+        if (!onizleme || tutar <= 0 || !baslangicTarih) {
+            if (onizleme) onizleme.innerHTML = '<p style="color: var(--gray-500); text-align: center;">Tutar ve tarih girin</p>';
+            return;
+        }
+        
+        const taksitTutar = tutar / taksitSayisi;
+        const tarih = new Date(baslangicTarih);
+        
+        let html = '<div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--gray-700);"><i class="fas fa-list" style="margin-right: 0.5rem;"></i>Taksit Planı</div>';
+        
+        for (let i = 0; i < taksitSayisi; i++) {
+            const taksitTarih = new Date(tarih);
+            taksitTarih.setMonth(taksitTarih.getMonth() + i);
+            
+            html += `
+                <div class="taksit-item">
+                    <span><strong>${i + 1}.</strong> Taksit - ${taksitTarih.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}</span>
+                    <span style="color: var(--gider-color); font-weight: 600;">${Yardimci.paraFormat(taksitTutar)}</span>
+                </div>
+            `;
+        }
+        
+        html += `<div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 2px solid var(--gray-200); display: flex; justify-content: space-between; font-weight: 700;">
+            <span>Toplam:</span>
+            <span style="color: var(--gider-color);">${Yardimci.paraFormat(tutar)}</span>
+        </div>`;
+        
+        onizleme.innerHTML = html;
+    }
+    
+    // Taksit checkbox event
+    const taksitCheckbox = document.getElementById('taksitCheckbox');
+    const taksitContainer = document.getElementById('taksitContainer');
+    
+    if (taksitCheckbox) {
+        taksitCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                taksitContainer.classList.add('active');
+                taksitOnizlemeGuncelle();
+            } else {
+                taksitContainer.classList.remove('active');
+            }
+        });
+        
+        // Taksit sayısı, tutar veya tarih değiştiğinde önizlemeyi güncelle
+        document.getElementById('taksitSayisi')?.addEventListener('change', taksitOnizlemeGuncelle);
+        document.getElementById('tutar').addEventListener('input', taksitOnizlemeGuncelle);
+        document.getElementById('tarih').addEventListener('change', taksitOnizlemeGuncelle);
+    }
+    
+    // Düzenleme modunda veriyi yükle
+    async function verileriYukle() {
+        if (editId) {
+            const gider = await Giderler.getir(editId);
+            if (gider) {
+                document.getElementById('tarih').value = gider.tarih;
+                document.getElementById('tutar').value = gider.tutar;
+                document.getElementById('kategori').value = gider.kategori;
+                document.getElementById('aciklama').value = gider.aciklama || '';
+            }
+        } else {
+            document.getElementById('tarih').value = Yardimci.bugunTarih();
+        }
+    }
+    
+    // Form submit
+    document.getElementById('giderForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const tutar = parseFloat(document.getElementById('tutar').value);
+        const kategori = document.getElementById('kategori').value;
+        const aciklama = document.getElementById('aciklama').value.trim();
+        const baslangicTarih = document.getElementById('tarih').value;
+        const taksitliMi = taksitCheckbox?.checked || false;
+        
+        try {
+            if (editId) {
+                // Düzenleme modu
+                await Giderler.guncelle(editId, {
+                    tarih: baslangicTarih,
+                    tutar: tutar,
+                    kategori: kategori,
+                    aciklama: aciklama
+                });
+                Toast.success('Gider başarıyla güncellendi!');
+            } else if (taksitliMi) {
+                // Taksitli ekleme - TEK KAYIT olarak
+                const taksitSayisi = parseInt(document.getElementById('taksitSayisi').value);
+                const aylikTaksit = tutar / taksitSayisi;
+                
+                await Giderler.ekle({
+                    tarih: baslangicTarih,
+                    tutar: tutar,  // Toplam tutar
+                    kategori: kategori,
+                    aciklama: aciklama,
+                    taksitli: true,
+                    taksit_sayisi: taksitSayisi,
+                    aylik_taksit: aylikTaksit,
+                    ilk_taksit_tarihi: baslangicTarih
+                });
+                
+                Toast.success(`${taksitSayisi} taksitli gider eklendi!`);
+            } else {
+                // Normal ekleme
+                await Giderler.ekle({
+                    tarih: baslangicTarih,
+                    tutar: tutar,
+                    kategori: kategori,
+                    aciklama: aciklama,
+                    taksitli: false
+                });
+                Toast.success('Gider başarıyla eklendi!');
+            }
+            
+            // Düzenleme modunda listeye dön, ekleme modunda formu sıfırla
+            if (editId) {
+                setTimeout(() => {
+                    window.location.href = '{{ url_for("giderler.liste") }}';
+                }, 1000);
+            } else {
+                // Formu sıfırla
+                formSifirla();
+            }
+        } catch (error) {
+            Toast.error('İşlem sırasında hata oluştu: ' + error.message);
+            console.error('Gider kaydetme hatası:', error);
+        }
+    });
+    
+    // Form sıfırlama fonksiyonu
+    function formSifirla() {
+        document.getElementById('giderForm').reset();
+        document.getElementById('tarih').value = Yardimci.bugunTarih();
+        document.getElementById('kategori').value = '';
+        document.getElementById('tutar').value = '';
+        document.getElementById('aciklama').value = '';
+        
+        // Taksit alanını sıfırla
+        if (taksitCheckbox) {
+            taksitCheckbox.checked = false;
+            taksitContainer.classList.remove('active');
+            document.getElementById('taksitSayisi').value = '2';
+            document.getElementById('taksitOnizleme').innerHTML = '<p style="color: var(--gray-500); text-align: center;">Tutar ve tarih girin</p>';
+        }
+    }
+    
+    // Başlangıç
+    kategorileriYukle();
+    verileriYukle();
+</script>
+{% endblock %}

@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+
+{% block title %}Gelirler - Kişisel Muhasebe{% endblock %}
+
+{% block page_title %}Gelirler{% endblock %}
+{% block page_subtitle %}Tüm gelirlerinizi görüntüleyin ve yönetin{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('gelirler.ekle') }}" class="btn btn-primary">
+    <i class="fas fa-plus"></i> Yeni Gelir Ekle
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Filtre Bar -->
+<div class="filter-bar fade-in">
+    <div class="form-group">
+        <label class="form-label">Kategori</label>
+        <select class="form-control form-select" id="filterKategori">
+            <option value="">Tüm Kategoriler</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label class="form-label">Başlangıç Tarihi</label>
+        <input type="date" class="form-control" id="filterBaslangic">
+    </div>
+    <div class="form-group">
+        <label class="form-label">Bitiş Tarihi</label>
+        <input type="date" class="form-control" id="filterBitis">
+    </div>
+    <div class="form-group" style="display: flex; align-items: flex-end;">
+        <button class="btn btn-secondary" onclick="filtreleriTemizle()">
+            <i class="fas fa-times"></i> Temizle
+        </button>
+    </div>
+</div>
+
+<!-- Toplam -->
+<div class="card fade-in" style="margin-bottom: 1.5rem; animation-delay: 0.1s;">
+    <div class="card-body" style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 48px; height: 48px; background: var(--gelir-bg); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-arrow-trend-up" style="font-size: 1.25rem; color: var(--gelir-color);"></i>
+            </div>
+            <div>
+                <p style="margin: 0; color: var(--gray-500); font-size: 0.875rem;">Toplam Gelir</p>
+                <h3 id="toplamGelir" style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--gelir-color);">0,00 ₺</h3>
+            </div>
+        </div>
+        <div style="text-align: right;">
+            <span id="kayitSayisi" style="color: var(--gray-500);">0 kayıt</span>
+        </div>
+    </div>
+</div>
+
+<!-- Gelir Listesi -->
+<div class="card fade-in" style="animation-delay: 0.2s;">
+    <div class="card-body" style="padding: 0;">
+        <div class="table-container">
+            <table class="table" id="gelirlerTablosu">
+                <thead>
+                    <tr>
+                        <th>Tarih</th>
+                        <th>Kategori</th>
+                        <th>Açıklama</th>
+                        <th style="text-align: right;">Tutar</th>
+                        <th style="text-align: center;">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody id="gelirlerBody">
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 3rem;">
+                            <div class="empty-state-icon" style="font-size: 3rem; color: var(--gray-300);">
+                                <i class="fas fa-inbox"></i>
+                            </div>
+                            <h3 style="color: var(--gray-600); margin: 1rem 0 0.5rem;">Henüz gelir kaydı yok</h3>
+                            <p style="color: var(--gray-500);">Yeni gelir ekleyerek başlayın</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module">
+    import { Gelirler, Kategoriler, Yardimci } from '{{ url_for("static", filename="js/db.js") }}';
+    
+    let tumGelirler = [];
+    
+    // Kategorileri yükle
+    function kategorileriYukle() {
+        const select = document.getElementById('filterKategori');
+        Kategoriler.gelir.forEach(kat => {
+            const option = document.createElement('option');
+            option.value = kat.id;
+            option.textContent = kat.ad;
+            select.appendChild(option);
+        });
+    }
+    
+    // Gelirleri tabloya render et
+    function renderGelirler(gelirler) {
+        const tbody = document.getElementById('gelirlerBody');
+        const toplamEl = document.getElementById('toplamGelir');
+        const kayitEl = document.getElementById('kayitSayisi');
+        
+        if (gelirler.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 3rem;">
+                        <div style="font-size: 3rem; color: var(--gray-300);">
+                            <i class="fas fa-inbox"></i>
+                        </div>
+                        <h3 style="color: var(--gray-600); margin: 1rem 0 0.5rem;">Kayıt bulunamadı</h3>
+                        <p style="color: var(--gray-500);">Filtrelerinizi değiştirmeyi deneyin</p>
+                    </td>
+                </tr>
+            `;
+            toplamEl.textContent = '0,00 ₺';
+            kayitEl.textContent = '0 kayıt';
+            return;
+        }
+        
+        // Tarihe göre sırala (yeniden eskiye)
+        gelirler.sort((a, b) => new Date(b.tarih) - new Date(a.tarih));
+        
+        const toplam = gelirler.reduce((t, g) => t + (parseFloat(g.tutar) || 0), 0);
+        toplamEl.textContent = Yardimci.paraFormat(toplam);
+        kayitEl.textContent = `${gelirler.length} kayıt`;
+        
+        tbody.innerHTML = gelirler.map(gelir => {
+            const kategori = Yardimci.kategoriGetir('gelir', gelir.kategori);
+            
+            return `
+                <tr class="gelir-row">
+                    <td>
+                        <span style="font-weight: 500;">${Yardimci.tarihFormat(gelir.tarih)}</span>
+                    </td>
+                    <td>
+                        <span class="badge badge-gelir">
+                            <i class="fas ${kategori.icon}" style="margin-right: 0.5rem;"></i>
+                            ${kategori.ad}
+                        </span>
+                    </td>
+                    <td>${gelir.aciklama || '-'}</td>
+                    <td style="text-align: right;">
+                        <span class="money positive" style="font-size: 1rem;">+${Yardimci.paraFormat(gelir.tutar)}</span>
+                    </td>
+                    <td style="text-align: center;">
+                        <div class="table-actions" style="justify-content: center;">
+                            <a href="{{ url_for('gelirler.duzenle', id='') }}${gelir.id}" class="btn btn-sm btn-secondary" title="Düzenle">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button class="btn btn-sm btn-danger" onclick="gelirSil('${gelir.id}')" title="Sil">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+    
+    // Filtreleme
+    function filtrele() {
+        const kategori = document.getElementById('filterKategori').value;
+        const baslangic = document.getElementById('filterBaslangic').value;
+        const bitis = document.getElementById('filterBitis').value;
+        
+        let filtrelenmis = [...tumGelirler];
+        
+        if (kategori) {
+            filtrelenmis = filtrelenmis.filter(g => g.kategori === kategori);
+        }
+        
+        if (baslangic) {
+            filtrelenmis = filtrelenmis.filter(g => g.tarih >= baslangic);
+        }
+        
+        if (bitis) {
+            filtrelenmis = filtrelenmis.filter(g => g.tarih <= bitis);
+        }
+        
+        renderGelirler(filtrelenmis);
+    }
+    
+    // Filtreleri temizle
+    window.filtreleriTemizle = function() {
+        document.getElementById('filterKategori').value = '';
+        document.getElementById('filterBaslangic').value = '';
+        document.getElementById('filterBitis').value = '';
+        renderGelirler(tumGelirler);
+    };
+    
+    // Gelir sil
+    window.gelirSil = async function(id) {
+        if (confirm('Bu geliri silmek istediğinizden emin misiniz?')) {
+            try {
+                await Gelirler.sil(id);
+                Toast.success('Gelir başarıyla silindi!');
+            } catch (error) {
+                Toast.error('Silme işlemi başarısız!');
+            }
+        }
+    };
+    
+    // Filtre event listener'ları
+    document.getElementById('filterKategori').addEventListener('change', filtrele);
+    document.getElementById('filterBaslangic').addEventListener('change', filtrele);
+    document.getElementById('filterBitis').addEventListener('change', filtrele);
+    
+    // Başlangıç
+    kategorileriYukle();
+    
+    // Realtime dinle
+    Gelirler.dinle(gelirler => {
+        tumGelirler = gelirler;
+        filtrele();
+    });
+</script>
+{% endblock %}
+
