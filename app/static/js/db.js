@@ -413,6 +413,42 @@ export const Giderler = {
         }
         return 0;
     },
+
+    /** Belirli ay için taksit tutarı (ay 1–12). Gelişim grafikleri için. */
+    aylikTaksitTutari: (gider, yil, ay) => {
+        if (!gider.taksitli) return 0;
+        const ilk = gider.ilk_taksit_tarihi || gider.tarih;
+        if (!ilk) return 0;
+        const ilkTarih = new Date(ilk);
+        const y0 = ilkTarih.getFullYear();
+        const m0 = ilkTarih.getMonth() + 1;
+        const ayFarki = (yil - y0) * 12 + (ay - m0);
+        const taksitSayisi = Math.max(1, gider.taksit_sayisi || 1);
+        const aylik = parseFloat(gider.aylik_taksit) || (parseFloat(gider.tutar) / taksitSayisi);
+        if (ayFarki >= 0 && ayFarki < taksitSayisi) return aylik;
+        return 0;
+    },
+
+    /** Belirli yıl için gider toplamı (taksitli: o yıla kadar ödenen). Gelişim için. */
+    yillikGiderToplam: (gider, yil) => {
+        const tutar = parseFloat(gider.tutar) || 0;
+        if (!gider.taksitli) {
+            const t = gider.tarih;
+            if (!t) return 0;
+            const y = new Date(t).getFullYear();
+            return y === yil ? tutar : 0;
+        }
+        const ilk = gider.ilk_taksit_tarihi || gider.tarih;
+        if (!ilk) return 0;
+        const ilkTarih = new Date(ilk);
+        const y0 = ilkTarih.getFullYear();
+        const m0 = ilkTarih.getMonth() + 1;
+        const taksitSayisi = Math.max(1, gider.taksit_sayisi || 1);
+        const aylik = parseFloat(gider.aylik_taksit) || (tutar / taksitSayisi);
+        const ayFarki = (yil - y0) * 12 + (12 - m0 + 1);
+        const odenen = Math.min(Math.max(0, ayFarki), taksitSayisi);
+        return odenen * aylik;
+    },
     
     toplamGetir: async () => {
         const giderler = await Giderler.hepsiniGetir();
@@ -667,6 +703,95 @@ export const Dashboard = {
     }
 };
 
+const AY_AD = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+const AY_AD_UZUN = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+
+export const Gelisim = {
+    /** Verideki tüm yılları döner (gelir + gider; taksitli için ilk_taksit_tarihi). */
+    mevcutYillar: async () => {
+        const [gelirler, giderler] = await Promise.all([
+            Gelirler.hepsiniGetir(),
+            Giderler.hepsiniGetir()
+        ]);
+        const yillar = new Set();
+        gelirler.forEach(x => { if (x.tarih) yillar.add(new Date(x.tarih).getFullYear()); });
+        giderler.forEach(x => {
+            if (x.tarih) yillar.add(new Date(x.tarih).getFullYear());
+            if (x.taksitli && (x.ilk_taksit_tarihi || x.tarih)) {
+                const ilk = x.ilk_taksit_tarihi || x.tarih;
+                yillar.add(new Date(ilk).getFullYear());
+            }
+        });
+        const arr = [...yillar].sort((a, b) => b - a);
+        return arr.length ? arr : [new Date().getFullYear()];
+    },
+
+    /** Seçilen yılın Ocak–Aralık gelir, gider, net kâr. */
+    aylikVeriler: async (yil) => {
+        const Y = yil != null ? parseInt(yil, 10) : new Date().getFullYear();
+        const [gelirler, giderler] = await Promise.all([
+            Gelirler.hepsiniGetir(),
+            Giderler.hepsiniGetir()
+        ]);
+        const labels = [];
+        const gelir = [];
+        const gider = [];
+        const net = [];
+        for (let m = 1; m <= 12; m++) {
+            const ayBas = new Date(Y, m - 1, 1);
+            const aySon = new Date(Y, m, 0);
+            const gToplam = gelirler
+                .filter(x => {
+                    if (!x.tarih) return false;
+                    const dt = new Date(x.tarih);
+                    return dt >= ayBas && dt <= aySon;
+                })
+                .reduce((t, x) => t + (parseFloat(x.tutar) || 0), 0);
+            let dToplam = 0;
+            giderler.forEach(x => {
+                if (x.taksitli) dToplam += Giderler.aylikTaksitTutari(x, Y, m);
+                else if (x.tarih) {
+                    const dt = new Date(x.tarih);
+                    if (dt >= ayBas && dt <= aySon) dToplam += parseFloat(x.tutar) || 0;
+                }
+            });
+            labels.push(AY_AD[m - 1]);
+            gelir.push(gToplam);
+            gider.push(dToplam);
+            net.push(gToplam - dToplam);
+        }
+        return { labels, gelir, gider, net, yil: Y, ayAdUzun: AY_AD_UZUN };
+    },
+    /** Yıllık tablo: sadece veride olan yıllar (Firebase). */
+    yillikTabloVeriler: async () => {
+        const yillar = await Gelisim.mevcutYillar();
+        const [gelirler, giderler] = await Promise.all([
+            Gelirler.hepsiniGetir(),
+            Giderler.hepsiniGetir()
+        ]);
+        const labels = yillar.map(y => String(y));
+        const gelir = [];
+        const gider = [];
+        const net = [];
+        for (const y of yillar) {
+            const yilBas = new Date(y, 0, 1);
+            const yilSon = new Date(y, 11, 31);
+            const gToplam = gelirler
+                .filter(x => {
+                    if (!x.tarih) return false;
+                    const dt = new Date(x.tarih);
+                    return dt >= yilBas && dt <= yilSon;
+                })
+                .reduce((t, x) => t + (parseFloat(x.tutar) || 0), 0);
+            const dToplam = giderler.reduce((t, x) => t + Giderler.yillikGiderToplam(x, y), 0);
+            gelir.push(gToplam);
+            gider.push(dToplam);
+            net.push(gToplam - dToplam);
+        }
+        return { labels, gelir, gider, net };
+    }
+};
+
 // ==================== YARDIMCI FONKSİYONLAR ====================
 // Saat dilimi desteği
 function getStoredTimezone() {
@@ -785,6 +910,7 @@ export async function init() {
             BorcuBitenler,
             Kategoriler,
             Dashboard,
+            Gelisim,
             Yardimci,
             Toast
         };
@@ -808,5 +934,6 @@ export default {
     BorcuBitenler,
     Kategoriler,
     Dashboard,
+    Gelisim,
     Yardimci
 };

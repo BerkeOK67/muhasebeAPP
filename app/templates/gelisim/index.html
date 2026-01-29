@@ -2,39 +2,259 @@
 
 {% block title %}Gelişim - Kişisel Muhasebe{% endblock %}
 {% block page_title %}Gelişim{% endblock %}
-{% block page_subtitle %}Aylık ve yıllık gelir, gider ve net kâr grafikleri{% endblock %}
+{% block page_subtitle %}Yıllık tablo ve aylık detay{% endblock %}
 
 {% block extra_css %}
 <style>
-    .gelisim-charts { display: flex; flex-direction: column; gap: 1.5rem; }
-    .gelisim-charts .card-body img { display: block; border-radius: var(--radius-lg); }
+    .gelisim-wrap { display: flex; flex-direction: column; gap: 0.75rem; }
+    .gelisim-yillik-tablo .card-body { padding: 0; }
+    .gelisim-yillik-tablo .table { margin: 0; }
+    .gelisim-yillik-tablo .table th,
+    .gelisim-yillik-tablo .table td { padding: 0.5rem 0.75rem; font-size: 0.9rem; }
+    .gelisim-yillik-tablo .net-positif { color: var(--gelir-color); font-weight: 600; }
+    .gelisim-yillik-tablo .net-negatif { color: var(--gider-color); font-weight: 600; }
+    .gelisim-yil-row { cursor: pointer; transition: background 0.15s; }
+    .gelisim-yil-row:hover { background: var(--primary-50); }
+    .gelisim-yil-row.active { background: var(--primary-100); font-weight: 600; }
+    .gelisim-aylik-panel { min-height: 320px; }
+    .gelisim-aylik-placeholder { color: var(--gray-400); text-align: center; padding: 3rem 1.5rem; }
+    .gelisim-aylik-row {
+        display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: flex-start; justify-content: center;
+    }
+    @media (max-width: 900px) {
+        .gelisim-aylik-row { flex-direction: column; }
+        .gelisim-chart-wrap { width: 100% !important; max-width: none !important; }
+    }
+    .gelisim-chart-wrap {
+        position: relative; flex: 0 0 auto;
+        width: 760px; max-width: 100%;
+        min-height: 380px; height: 380px;
+    }
+    .gelisim-chart-loading {
+        position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+        color: var(--gray-500); flex-direction: column; gap: 0.5rem;
+    }
+    .gelisim-tablo-wrap { flex: 0 0 auto; width: max-content; }
+    .gelisim-tablo-wrap .table { margin: 0; border-collapse: collapse; width: max-content; }
+    .gelisim-tablo-wrap .table th,
+    .gelisim-tablo-wrap .table td {
+        padding: 0.25rem 0.5rem; font-size: 0.9rem;
+        border-bottom: 1px solid var(--gray-200);
+    }
+    .gelisim-tablo-wrap .table thead th { border-bottom: 2px solid var(--gray-300); }
+    .gelisim-tablo-wrap .net-positif { color: var(--gelir-color); font-weight: 600; }
+    .gelisim-tablo-wrap .net-negatif { color: var(--gider-color); font-weight: 600; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="gelisim-charts">
-    <div class="card fade-in">
+<div class="gelisim-wrap">
+    <!-- Yıllık tablo (en üst, Firebase verisine göre) -->
+    <div class="card fade-in gelisim-yillik-tablo">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-calendar-alt" style="margin-right: 0.5rem; color: var(--gelir-color);"></i>
+                Yıllık tablo
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="table-container">
+                <table class="table" style="margin: 0;">
+                    <thead>
+                        <tr>
+                            <th>Yıl</th>
+                            <th style="text-align: right;">Gelir</th>
+                            <th style="text-align: right;">Gider</th>
+                            <th style="text-align: right;">Net kâr</th>
+                        </tr>
+                    </thead>
+                    <tbody id="yillikTabloBody">
+                        <tr><td colspan="4" class="gelisim-aylik-placeholder"><i class="fas fa-spinner fa-spin"></i> Yükleniyor...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aylık detay: grafik solda, tablo sağda. Yıl yalnızca yukarıdaki tablodan. -->
+    <div class="card fade-in gelisim-aylik-panel">
         <div class="card-header">
             <h3 class="card-title">
                 <i class="fas fa-chart-bar" style="margin-right: 0.5rem; color: var(--primary-500);"></i>
-                Aylık gelir, gider ve net kâr
+                Aylık detay — <span id="aylikPanelYil">—</span>
             </h3>
         </div>
-        <div class="card-body" style="overflow-x: auto;">
-            <img src="{{ url_for('gelisim.chart_aylik') }}" alt="Aylık grafik" style="max-width: 100%; height: auto;">
-        </div>
-    </div>
-    
-    <div class="card fade-in" style="animation-delay: 0.1s;">
-        <div class="card-header">
-            <h3 class="card-title">
-                <i class="fas fa-chart-line" style="margin-right: 0.5rem; color: var(--primary-500);"></i>
-                Yıllık gelir, gider ve net kâr
-            </h3>
-        </div>
-        <div class="card-body" style="overflow-x: auto;">
-            <img src="{{ url_for('gelisim.chart_yillik') }}" alt="Yıllık grafik" style="max-width: 100%; height: auto;">
+        <div class="card-body">
+            <div id="aylikPlaceholder" class="gelisim-aylik-placeholder" style="display: none;">
+                <i class="fas fa-mouse-pointer"></i>
+                <p style="margin: 0.5rem 0 0;">Yıllık tabloda bir yıla tıklayın</p>
+            </div>
+            <div class="gelisim-aylik-row" id="aylikRow" style="display: none;">
+                <div class="gelisim-chart-wrap">
+                    <div class="gelisim-chart-loading" id="aylikLoading">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem;"></i>
+                        <span>Yükleniyor...</span>
+                    </div>
+                    <canvas id="chartAylik" style="display: none;"></canvas>
+                </div>
+                <div class="gelisim-tablo-wrap" id="aylikTabloWrap" style="display: none;">
+                    <table class="table" id="aylikTablo">
+                        <thead>
+                            <tr>
+                                <th>Ay</th>
+                                <th style="text-align: right;">Gelir</th>
+                                <th style="text-align: right;">Gider</th>
+                                <th style="text-align: right;">Net kâr</th>
+                            </tr>
+                        </thead>
+                        <tbody id="aylikTabloBody"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script type="module">
+    import { Gelisim, Yardimci } from '{{ url_for("static", filename="js/db.js") }}';
+
+    const opts = {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 2,
+        plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+                callbacks: {
+                    label: (ctx) => ctx.dataset.label + ': ' + (ctx.raw ?? 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺'
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: (v) => (v ?? 0).toLocaleString('tr-TR', { maximumFractionDigits: 0 }) + ' ₺'
+                }
+            }
+        }
+    };
+
+    let aylikChart = null;
+
+    function fillAylikTablo(data) {
+        const wrap = document.getElementById('aylikTabloWrap');
+        const tbody = document.getElementById('aylikTabloBody');
+        const { gelir, gider, net, ayAdUzun } = data;
+        tbody.innerHTML = (ayAdUzun || []).map((ay, i) => {
+            const g = gelir[i] ?? 0;
+            const d = gider[i] ?? 0;
+            const n = net[i] ?? 0;
+            const netCls = n >= 0 ? 'net-positif' : 'net-negatif';
+            const netStr = n > 0 ? '+' + Yardimci.paraFormat(n) : Yardimci.paraFormat(n);
+            return `<tr>
+                <td><strong>${ay}</strong></td>
+                <td style="text-align: right;">${Yardimci.paraFormat(g)}</td>
+                <td style="text-align: right;">${Yardimci.paraFormat(d)}</td>
+                <td style="text-align: right;" class="${netCls}">${netStr}</td>
+            </tr>`;
+        }).join('');
+        wrap.style.display = 'block';
+    }
+
+    function setActiveYilRow(yil) {
+        document.querySelectorAll('.gelisim-yil-row').forEach(r => {
+            r.classList.toggle('active', r.dataset.year === String(yil));
+        });
+    }
+
+    async function selectYear(yil) {
+        const panelYil = document.getElementById('aylikPanelYil');
+        const placeholder = document.getElementById('aylikPlaceholder');
+        const row = document.getElementById('aylikRow');
+        panelYil.textContent = yil;
+        setActiveYilRow(yil);
+        placeholder.style.display = 'none';
+        row.style.display = 'flex';
+        await drawAylik(yil);
+    }
+
+    async function drawAylik(yil) {
+        const loading = document.getElementById('aylikLoading');
+        const canvas = document.getElementById('chartAylik');
+        const wrap = document.getElementById('aylikTabloWrap');
+        loading.style.display = 'flex';
+        canvas.style.display = 'none';
+        wrap.style.display = 'none';
+        if (aylikChart) {
+            aylikChart.destroy();
+            aylikChart = null;
+        }
+        try {
+            const data = await Gelisim.aylikVeriler(yil);
+            const { labels, gelir, gider, net } = data;
+            loading.style.display = 'none';
+            canvas.style.display = 'block';
+            aylikChart = new window.Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: 'Gelir', data: gelir, backgroundColor: 'rgba(16, 185, 129, 0.8)', borderColor: '#10b981', borderWidth: 1 },
+                        { label: 'Gider', data: gider, backgroundColor: 'rgba(239, 68, 68, 0.8)', borderColor: '#ef4444', borderWidth: 1 },
+                        { label: 'Net kâr', data: net, backgroundColor: 'rgba(59, 130, 246, 0.8)', borderColor: '#3b82f6', borderWidth: 1 }
+                    ]
+                },
+                options: { ...opts }
+            });
+            fillAylikTablo(data);
+        } catch (e) {
+            loading.innerHTML = '<i class="fas fa-exclamation-circle"></i><span>Grafik yüklenemedi</span>';
+        }
+    }
+
+    async function initYillik() {
+        const tbody = document.getElementById('yillikTabloBody');
+        try {
+            const { labels, gelir, gider, net } = await Gelisim.yillikTabloVeriler();
+            if (labels.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="gelisim-aylik-placeholder"><i class="fas fa-inbox"></i> Henüz veri yok</td></tr>';
+                return [];
+            }
+            tbody.innerHTML = labels.map((y, i) => {
+                const g = gelir[i] ?? 0;
+                const d = gider[i] ?? 0;
+                const n = net[i] ?? 0;
+                const netCls = n >= 0 ? 'net-positif' : 'net-negatif';
+                const netStr = n > 0 ? '+' + Yardimci.paraFormat(n) : Yardimci.paraFormat(n);
+                return `<tr class="gelisim-yil-row" data-year="${y}">
+                    <td><strong>${y}</strong></td>
+                    <td style="text-align: right;">${Yardimci.paraFormat(g)}</td>
+                    <td style="text-align: right;">${Yardimci.paraFormat(d)}</td>
+                    <td style="text-align: right;" class="${netCls}">${netStr}</td>
+                </tr>`;
+            }).join('');
+            tbody.querySelectorAll('.gelisim-yil-row').forEach(row => {
+                row.addEventListener('click', () => selectYear(row.dataset.year));
+            });
+            return labels;
+        } catch (e) {
+            tbody.innerHTML = '<tr><td colspan="4" class="gelisim-aylik-placeholder">Yüklenemedi</td></tr>';
+            return [];
+        }
+    }
+
+    (async () => {
+        const yillar = await initYillik();
+        if (yillar.length) {
+            await selectYear(String(yillar[0]));
+        } else {
+            document.getElementById('aylikPanelYil').textContent = '—';
+            document.getElementById('aylikPlaceholder').style.display = 'block';
+        }
+    })();
+</script>
 {% endblock %}

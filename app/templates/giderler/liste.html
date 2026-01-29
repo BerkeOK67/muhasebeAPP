@@ -181,6 +181,12 @@
         </select>
     </div>
     <div class="form-group">
+        <label class="form-label">Yıl</label>
+        <select class="form-control form-select" id="filterYil">
+            <option value="">Tüm Yıllar</option>
+        </select>
+    </div>
+    <div class="form-group">
         <label class="form-label">Başlangıç</label>
         <input type="date" class="form-control" id="filterBaslangic">
     </div>
@@ -238,11 +244,33 @@
     // Kategorileri yükle
     function kategorileriYukle() {
         const select = document.getElementById('filterKategori');
+        select.innerHTML = '<option value="">Tüm Kategoriler</option>';
         Kategoriler.gider.forEach(kat => {
             const option = document.createElement('option');
             option.value = kat.id;
             option.textContent = kat.ad;
             select.appendChild(option);
+        });
+    }
+
+    // Yılları veriden türet (tarih + taksitli için ilk_taksit_tarihi)
+    function yillariYukle() {
+        const yillar = new Set();
+        tumGiderler.forEach(g => {
+            const t = g.tarih;
+            if (t) yillar.add(new Date(t).getFullYear());
+            if (g.taksitli && (g.ilk_taksit_tarihi || g.tarih)) {
+                const ilk = g.ilk_taksit_tarihi || g.tarih;
+                yillar.add(new Date(ilk).getFullYear());
+            }
+        });
+        const select = document.getElementById('filterYil');
+        select.innerHTML = '<option value="">Tüm Yıllar</option>';
+        [...yillar].sort((a, b) => b - a).forEach(y => {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            select.appendChild(opt);
         });
     }
     
@@ -450,6 +478,7 @@
     function filtrele() {
         const kategori = document.getElementById('filterKategori').value;
         const tur = document.getElementById('filterTur').value;
+        const yil = document.getElementById('filterYil').value;
         const baslangic = document.getElementById('filterBaslangic').value;
         const bitis = document.getElementById('filterBitis').value;
         
@@ -463,6 +492,14 @@
             filtrelenmis = filtrelenmis.filter(g => !g.taksitli);
         } else if (tur === 'taksit') {
             filtrelenmis = filtrelenmis.filter(g => g.taksitli);
+        }
+        
+        if (yil) {
+            const yilVal = parseInt(yil, 10);
+            filtrelenmis = filtrelenmis.filter(g => {
+                const t = g.taksitli ? (g.ilk_taksit_tarihi || g.tarih) : g.tarih;
+                return t && new Date(t).getFullYear() === yilVal;
+            });
         }
         
         if (baslangic) {
@@ -480,6 +517,7 @@
     window.filtreleriTemizle = function() {
         document.getElementById('filterKategori').value = '';
         document.getElementById('filterTur').value = '';
+        document.getElementById('filterYil').value = '';
         document.getElementById('filterBaslangic').value = '';
         document.getElementById('filterBitis').value = '';
         renderGiderler(tumGiderler);
@@ -500,6 +538,7 @@
     // Filtre event listener'ları
     document.getElementById('filterKategori').addEventListener('change', filtrele);
     document.getElementById('filterTur').addEventListener('change', filtrele);
+    document.getElementById('filterYil').addEventListener('change', filtrele);
     document.getElementById('filterBaslangic').addEventListener('change', filtrele);
     document.getElementById('filterBitis').addEventListener('change', filtrele);
     
@@ -509,6 +548,7 @@
     // Realtime dinle
     Giderler.dinle(giderler => {
         tumGiderler = giderler;
+        yillariYukle();
         filtrele();
     });
 </script>

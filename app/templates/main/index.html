@@ -164,66 +164,6 @@
         </div>
     </div>
     
-    <!-- Aylık ve Yıllık Gelir Tabloları -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
-        <!-- Aylık Gelir Tablosu -->
-        <div class="card fade-in" style="animation-delay: 0.6s;">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-calendar-alt" style="margin-right: 0.5rem; color: var(--gelir-color);"></i>
-                    Aylık Gelir Tablosu
-                </h3>
-            </div>
-            <div class="card-body" style="padding: 0;">
-                <div class="table-container">
-                    <table class="table" style="margin: 0;">
-                        <thead>
-                            <tr>
-                                <th>Ay</th>
-                                <th style="text-align: right;">Tutar</th>
-                            </tr>
-                        </thead>
-                        <tbody id="aylikGelirTablosu">
-                            <tr>
-                                <td colspan="2" style="text-align: center; padding: 2rem; color: var(--gray-500);">
-                                    <i class="fas fa-spinner fa-spin"></i> Yükleniyor...
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Yıllık Gelir Tablosu -->
-        <div class="card fade-in" style="animation-delay: 0.7s;">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-chart-bar" style="margin-right: 0.5rem; color: var(--gelir-color);"></i>
-                    Yıllık Gelir Tablosu
-                </h3>
-            </div>
-            <div class="card-body" style="padding: 0;">
-                <div class="table-container">
-                    <table class="table" style="margin: 0;">
-                        <thead>
-                            <tr>
-                                <th>Yıl</th>
-                                <th style="text-align: right;">Tutar</th>
-                            </tr>
-                        </thead>
-                        <tbody id="yillikGelirTablosu">
-                            <tr>
-                                <td colspan="2" style="text-align: center; padding: 2rem; color: var(--gray-500);">
-                                    <i class="fas fa-spinner fa-spin"></i> Yükleniyor...
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 {% endblock %}
 
@@ -294,63 +234,6 @@
         }
     }
     
-    // Aylık ve yıllık tabloları yükle
-    async function loadTablolar() {
-        const [aylikTablo, yillikTablo] = await Promise.all([
-            Dashboard.aylikGelirTablosu(),
-            Dashboard.yillikGelirTablosu()
-        ]);
-        
-        // Aylık tablo
-        const aylikTbody = document.getElementById('aylikGelirTablosu');
-        if (aylikTablo.length === 0) {
-            aylikTbody.innerHTML = `
-                <tr>
-                    <td colspan="2" style="text-align: center; padding: 2rem; color: var(--gray-500);">
-                        <i class="fas fa-inbox" style="display: block; font-size: 2rem; margin-bottom: 0.5rem;"></i>
-                        Henüz gelir kaydı yok
-                    </td>
-                </tr>
-            `;
-        } else {
-            aylikTbody.innerHTML = aylikTablo.map(ay => `
-                <tr>
-                    <td>
-                        <strong>${ay.ayKisa}</strong>
-                        <span style="color: var(--gray-500); font-size: 0.85rem;">${ay.yil}</span>
-                    </td>
-                    <td style="text-align: right; font-weight: 600; color: var(--gelir-color);">
-                        ${Yardimci.paraFormat(ay.tutar)}
-                    </td>
-                </tr>
-            `).join('');
-        }
-        
-        // Yıllık tablo
-        const yillikTbody = document.getElementById('yillikGelirTablosu');
-        if (yillikTablo.length === 0) {
-            yillikTbody.innerHTML = `
-                <tr>
-                    <td colspan="2" style="text-align: center; padding: 2rem; color: var(--gray-500);">
-                        <i class="fas fa-inbox" style="display: block; font-size: 2rem; margin-bottom: 0.5rem;"></i>
-                        Henüz gelir kaydı yok
-                    </td>
-                </tr>
-            `;
-        } else {
-            yillikTbody.innerHTML = yillikTablo.map(yil => `
-                <tr>
-                    <td>
-                        <strong style="font-size: 1.1rem;">${yil.yil}</strong>
-                    </td>
-                    <td style="text-align: right; font-weight: 700; color: var(--gelir-color); font-size: 1.1rem;">
-                        ${Yardimci.paraFormat(yil.tutar)}
-                    </td>
-                </tr>
-            `).join('');
-        }
-    }
-    
     // Realtime dinle
     Dashboard.dinle(stats => {
         document.getElementById('aylikGelir').textContent = Yardimci.paraFormat(stats.aylik_gelir);
@@ -359,12 +242,8 @@
         document.getElementById('toplamGelir').textContent = Yardimci.paraFormat(stats.toplam_gelir);
         document.getElementById('toplamGider').textContent = Yardimci.paraFormat(stats.toplam_gider);
         document.getElementById('toplamBakiye').textContent = Yardimci.paraFormat(stats.toplam_bakiye);
-        
-        // Tabloları da güncelle
-        loadTablolar();
     });
     
     loadDashboard();
-    loadTablolar();
 </script>
 {% endblock %}
