@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}Lisans Gerekli{% endblock %}
+{% block page_title %}Lisans Doğrulama{% endblock %}
+{% block page_subtitle %}Uygulamayı kullanmak için geçerli bir lisans anahtarı girin{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 480px; margin: 2rem auto;">
+    <div class="card-body">
+        <p class="text-muted" style="margin-bottom: 1.5rem;">
+            Lisans anahtarınızı girin. Size verilen lisans anahtarını kullanın.
+        </p>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" style="margin-bottom: 1rem;">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <form method="post" action="{{ url_for('main.lisans_validate') }}" id="lisansForm">
+            <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
+            <input type="hidden" name="device_id" id="device_id" value="">
+            <div class="form-group">
+                <label for="license_key">Lisans Anahtarı</label>
+                <input type="text" id="license_key" name="license_key" class="form-control" 
+                       placeholder="XXXX-XXXX-XXXX-XXXX" required autofocus
+                       style="font-family: monospace; letter-spacing: 0.1em;">
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-check"></i> Doğrula
+            </button>
+        </form>
+        <script>
+        (function() {
+            var STORAGE_KEY = 'kisiselmuhasebe_device_id';
+            var id = localStorage.getItem(STORAGE_KEY);
+            if (!id) {
+                var s = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+                id = s + '-' + (typeof navigator !== 'undefined' && navigator.userAgent ? navigator.userAgent.length : 0);
+                localStorage.setItem(STORAGE_KEY, id);
+            }
+            var el = document.getElementById('device_id');
+            if (el) el.value = id;
+        })();
+        </script>
+    </div>
+</div>
+{% endblock %}

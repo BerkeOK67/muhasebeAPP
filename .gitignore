@@ -1,6 +1,7 @@
 # Firebase service account (gizli tut)
 serviceAccountKey*.json
 *-firebase-adminsdk-*.json
+admin_app/lisans-takip-credentials.json
 
 # Python
 __pycache__/
@@ -17,3 +18,8 @@ venv/
 .vscode/
 *.swp
 *.swo
+
+# PyInstaller
+build/
+dist/
+*.spec.bak

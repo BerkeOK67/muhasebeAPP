@@ -34,7 +34,7 @@
                         💰
                     </div>
                     <div class="sidebar-logo-text">
-                        <h1>Kişisel Muhasebe</h1>
+                        <h1>{% if license_holder %}{{ license_holder }}{% else %}Kişisel Muhasebe{% endif %}</h1>
                         <span>Finans Takip</span>
                     </div>
                 </div>
@@ -42,6 +42,13 @@
                     <i class="fas fa-angles-left" id="toggleIcon"></i>
                 </button>
             </div>
+            {% if license_holder %}
+            <div class="sidebar-license-actions" style="padding: 0 1rem 0.5rem;">
+                <a href="{{ url_for('main.lisans_cikis') }}" class="btn btn-secondary btn-sm" style="width: 100%; font-size: 0.8rem;">
+                    <i class="fas fa-sign-out-alt"></i> Lisanstan Çıkış
+                </a>
+            </div>
+            {% endif %}
             
             <nav class="sidebar-nav">
                 <!-- Ana Menü -->
@@ -116,11 +123,6 @@
                     <p>{% block page_subtitle %}Finansal durumunuza genel bakış{% endblock %}</p>
                 </div>
                 <div class="header-actions">
-                    {% if current_user_email %}
-                    <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary btn-sm">
-                        <i class="fas fa-sign-out-alt"></i> Çıkış
-                    </a>
-                    {% endif %}
                     {% block header_actions %}{% endblock %}
                 </div>
             </header>

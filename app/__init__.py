@@ -1,28 +1,43 @@
-from flask import Flask, request, session, redirect, url_for
+import os
+import sys
+
+from flask import Flask, session, request, redirect, url_for
 
 from config import Config
 
 
 def create_app():
-    app = Flask(__name__)
+    if getattr(sys, 'frozen', False):
+        base = sys._MEIPASS
+        app = Flask(__name__,
+                    template_folder=os.path.join(base, 'app', 'templates'),
+                    static_folder=os.path.join(base, 'app', 'static'),
+                    static_url_path='/static')
+    else:
+        app = Flask(__name__)
     app.config.from_object(Config)
-    
-    # Auth blueprint (login/logout)
-    from app.auth import bp as auth_bp
-    app.register_blueprint(auth_bp)
-    
-    # Koruma: giriş yoksa /login'e yönlendir
+
     @app.before_request
-    def require_login():
-        if request.endpoint in ('auth.login', 'auth.logout', 'static'):
+    def require_license():
+        if request.endpoint in (None, 'static'):
             return None
         if request.path.startswith('/static/'):
             return None
-        if not session.get('user_email'):
-            return redirect(url_for('auth.login', next=request.full_path.rstrip('?') or request.path))
+        if request.endpoint in ('main.lisans', 'main.lisans_validate'):
+            return None
+        key = session.get('license_key') or Config.LICENSE_KEY
+        if not key:
+            return redirect(url_for('main.lisans', next=request.full_path.rstrip('?') or request.path))
+        try:
+            from app.license_check import is_valid_license
+            if not is_valid_license(key):
+                session.pop('license_key', None)
+                return redirect(url_for('main.lisans', next=request.full_path.rstrip('?') or request.path))
+        except Exception:
+            return redirect(url_for('main.lisans', next=request.full_path.rstrip('?') or request.path))
         return None
-    
-    # Jinja2 için global değişkenler (sabit Europe/Istanbul)
+
+    # Jinja2 için global değişkenler (sabit Europe/Istanbul + lisans sahibi)
     @app.context_processor
     def inject_globals():
         import pytz
@@ -31,7 +46,7 @@ def create_app():
         now = datetime.now(tz)
         return {
             'current_datetime': now,
-            'current_user_email': session.get('user_email'),
+            'license_holder': session.get('license_holder'),
         }
     
     # Blueprint'leri kaydet
