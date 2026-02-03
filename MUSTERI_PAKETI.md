@@ -43,13 +43,43 @@ Proje kökündeki **gerçek klasör yapısına** göre liste.
 
 ---
 
-## Sadece EXE verirken
+## EXE nasıl oluşturulur? (Sizin yapacaklarınız — müşteri EXE üretmez)
+
+EXE’yi **siz** kendi bilgisayarınızda üretirsiniz. Müşteri sadece size verdiğiniz `.exe` dosyasına çift tıklar; kurulum veya Python yok.
+
+### Adımlar (sizin bilgisayarınızda)
+
+1. **Projeyi açın** (bu repo klasörü).
+2. **Sanal ortam** (isteğe bağlı ama önerilir):
+   ```bash
+   python -m venv venv
+   venv\Scripts\activate
+   ```
+3. **Bağımlılıkları yükleyin:**
+   ```bash
+   pip install -r requirements.txt
+   pip install pyinstaller
+   ```
+4. **EXE’yi derleyin:**
+   ```bash
+   pyinstaller KisiselMuhasebe.spec
+   ```
+5. **Çıktı:** `dist` klasöründe **KisiselMuhasebe.exe** oluşur.
+6. **Müşteriye verin:** Sadece `dist/KisiselMuhasebe.exe` dosyasını (e‑posta, link veya USB ile). Müşteri bu dosyayı istediği yere kopyalayıp çift tıklar; tarayıcı otomatik açılır.
+
+### Müşteri tarafında
+
+- Python kurulumu **yok**.
+- EXE’yi çalıştırır → uygulama açılır, tarayıcı açılır.
+- İnternet sadece Firebase (veri + lisans) için gerekir.
+
+---
+
+## Sadece EXE verirken (müşteriye ne verilir)
 
 Müşteriye **sadece** şu dosyayı verin:
 
 - **dist/KisiselMuhasebe.exe**
-
-(EXE’yi `pyinstaller KisiselMuhasebe.spec` ile üretirsiniz.)
 
 ---
 
