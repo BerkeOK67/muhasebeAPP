@@ -524,15 +524,15 @@
     };
     
     // Gider sil
-    window.giderSil = async function(id) {
-        if (confirm('Bu gideri silmek istediğinizden emin misiniz?')) {
+    window.giderSil = function(id) {
+        showDeleteModal('Bu gideri silmek istediğinizden emin misiniz?', async () => {
             try {
                 await Giderler.sil(id);
                 Toast.success('Gider silindi!');
             } catch (error) {
                 Toast.error('Silme işlemi başarısız!');
             }
-        }
+        });
     };
     
     // Filtre event listener'ları

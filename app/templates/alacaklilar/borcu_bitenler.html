@@ -344,15 +344,15 @@
         });
     }
     
-    window.kayitSil = async function(id) {
-        if (confirm('Bu kaydı silmek istediğinizden emin misiniz?')) {
+    window.kayitSil = function(id) {
+        showDeleteModal('Bu kaydı silmek istediğinizden emin misiniz?', async () => {
             try {
                 await BorcuBitenler.sil(id);
                 Toast.success('Kayıt silindi!');
             } catch (error) {
                 Toast.error('Silme işlemi başarısız!');
             }
-        }
+        });
     };
     
     // Event listeners

@@ -32,17 +32,14 @@ def get_license_info(key):
     }
 
 
-def validate_and_activate(key, device_id):
+def validate_and_activate(key, device_id=None):
     """
-    Lisansı doğrular ve ilk kullanımda bu cihaza aktive eder.
+    Lisansı doğrular (cihaz kontrolü yok).
     Returns: (success: bool, error_message: str|None, info: dict|None)
     """
     key = (key or '').strip()
-    device_id = (device_id or '').strip()
     if not key:
         return False, 'Lisans anahtarı gerekli.', None
-    if not device_id:
-        return False, 'Cihaz kimliği alınamadı. Tarayıcıyı yenileyip tekrar deneyin.', None
 
     kid, data = _find_license_by_key(key)
     if not kid or not data:
@@ -59,20 +56,6 @@ def validate_and_activate(key, device_id):
             pass
 
     info = {'email': (data.get('email') or '').strip(), 'notes': (data.get('notes') or '').strip()}
-    activated_at = data.get('activated_at')
-    activated_device_id = (data.get('activated_device_id') or '').strip()
-
-    if not activated_at and not activated_device_id:
-        now = datetime.utcnow().isoformat() + 'Z'
-        child = _licenses_ref(f'/{kid}')
-        try:
-            child.update({'activated_at': now, 'activated_device_id': device_id})
-        except Exception:
-            return False, 'Lisans aktive edilemedi.', None
-        return True, None, info
-
-    if activated_device_id != device_id:
-        return False, 'Bu lisans başka bir cihazda aktif. Başka cihazda kullanılamaz.', None
     return True, None, info
 
 

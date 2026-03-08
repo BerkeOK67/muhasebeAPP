@@ -39,8 +39,7 @@ def lisans_validate():
 
 @bp.route('/lisans/cikis')
 def lisans_cikis():
-    session.pop('license_key', None)
-    session.pop('license_holder', None)
+    session.clear()
     flash('Lisanstan çıkış yapıldı.', 'info')
     return redirect(url_for('main.lisans'))
 

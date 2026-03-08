@@ -478,15 +478,15 @@
         }).join('');
     }
     
-    window.kayitSil = async function(id) {
-        if (confirm('Bu kaydı silmek istediğinizden emin misiniz? Tüm ödeme geçmişi de silinecektir.')) {
+    window.kayitSil = function(id) {
+        showDeleteModal('Bu kaydı silmek istediğinizden emin misiniz? Tüm ödeme geçmişi de silinecektir.', async () => {
             try {
                 await Alacaklilar.sil(id);
                 Toast.success('Kayıt silindi!');
             } catch (error) {
                 Toast.error('Silme işlemi başarısız!');
             }
-        }
+        });
     };
     
     // Event listeners

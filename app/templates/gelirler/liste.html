@@ -226,15 +226,15 @@
     };
     
     // Gelir sil
-    window.gelirSil = async function(id) {
-        if (confirm('Bu geliri silmek istediğinizden emin misiniz?')) {
+    window.gelirSil = function(id) {
+        showDeleteModal('Bu geliri silmek istediğinizden emin misiniz?', async () => {
             try {
                 await Gelirler.sil(id);
                 Toast.success('Gelir başarıyla silindi!');
             } catch (error) {
                 Toast.error('Silme işlemi başarısız!');
             }
-        }
+        });
     };
     
     // Filtre event listener'ları

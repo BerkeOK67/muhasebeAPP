@@ -146,6 +146,151 @@
         </main>
     </div>
     
+    <!-- Silme Onay Modal -->
+    <div id="deleteModal" class="modal-overlay" style="display: none;">
+        <div class="modal-container">
+            <div class="modal-header modal-header-danger">
+                <div class="modal-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3>Silme Onayı</h3>
+            </div>
+            <div class="modal-body">
+                <p id="deleteModalText">Bu kaydı silmek istediğinizden emin misiniz?</p>
+                <p class="modal-warning"><i class="fas fa-info-circle"></i> Bu işlem geri alınamaz!</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeDeleteModal()">
+                    <i class="fas fa-times"></i> İptal
+                </button>
+                <button class="btn btn-danger" id="deleteModalConfirm">
+                    <i class="fas fa-trash"></i> Sil
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-container {
+            background: white;
+            border-radius: 1rem;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transform: scale(0.9) translateY(20px);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        .modal-overlay.active .modal-container {
+            transform: scale(1) translateY(0);
+        }
+        .modal-header {
+            padding: 1.5rem;
+            text-align: center;
+            color: white;
+        }
+        .modal-header-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+        .modal-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 1.5rem;
+        }
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        .modal-body {
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .modal-body p {
+            margin: 0 0 0.5rem;
+            color: var(--gray-700);
+        }
+        .modal-warning {
+            font-size: 0.875rem;
+            color: var(--gray-500) !important;
+            margin-top: 1rem !important;
+        }
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            display: flex;
+            gap: 0.75rem;
+            border-top: 1px solid var(--gray-200);
+        }
+        .modal-footer .btn {
+            flex: 1;
+            justify-content: center;
+        }
+    </style>
+    
+    <script>
+        let deleteCallback = null;
+        
+        function showDeleteModal(message, callback) {
+            const modal = document.getElementById('deleteModal');
+            const text = document.getElementById('deleteModalText');
+            const confirmBtn = document.getElementById('deleteModalConfirm');
+            
+            text.textContent = message || 'Bu kaydı silmek istediğinizden emin misiniz?';
+            deleteCallback = callback;
+            
+            modal.style.display = 'flex';
+            setTimeout(() => modal.classList.add('active'), 10);
+            
+            confirmBtn.onclick = function() {
+                if (deleteCallback) {
+                    deleteCallback();
+                }
+                closeDeleteModal();
+            };
+        }
+        
+        function closeDeleteModal() {
+            const modal = document.getElementById('deleteModal');
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.style.display = 'none';
+                deleteCallback = null;
+            }, 300);
+        }
+        
+        document.getElementById('deleteModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDeleteModal();
+            }
+        });
+    </script>
+
     <!-- Firebase Durum Göstergesi -->
     <div id="firebaseStatus" style="position: fixed; bottom: 1rem; right: 1rem; z-index: 1000;">
         <div id="firebaseStatusBtn" style="

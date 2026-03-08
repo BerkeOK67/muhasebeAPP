@@ -3,23 +3,30 @@
 # Gereksinim: pip install pyinstaller waitress
 
 import os
-from PyInstaller.building.datastruct import Tree
+from PyInstaller.utils.hooks import collect_data_files
 
 block_cipher = None
 root = os.path.dirname(os.path.abspath(SPEC))
+
+# Datas listesi oluştur
+datas_list = [
+    (os.path.join(root, 'app', 'templates'), 'app/templates'),
+    (os.path.join(root, 'app', 'static'), 'app/static'),
+    (os.path.join(root, 'config.py'), '.'),
+]
 
 a = Analysis(
     ['launcher.py'],
     pathex=[root],
     binaries=[],
-    datas=
-        Tree(os.path.join(root, 'app', 'templates'), 'app/templates') +
-        Tree(os.path.join(root, 'app', 'static'), 'app/static') +
-        [(os.path.join(root, 'config.py'), '.')],
+    datas=datas_list,
     hiddenimports=[
         'app', 'app.main', 'app.gelirler', 'app.giderler', 'app.alacaklilar', 'app.gelisim',
         'app.license_check', 'app.firebase_licenses', 'app.firebase_admin',
         'config', 'waitress', 'flask', 'pytz', 'firebase_admin', 'werkzeug',
+        'firebase_admin.credentials', 'firebase_admin.db',
+        'google.auth', 'google.auth.transport', 'google.auth.transport.requests',
+        'google.oauth2', 'cachetools', 'certifi',
     ],
     hookspath=[],
     hooksconfig={},
