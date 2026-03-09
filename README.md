@@ -36,7 +36,7 @@ Modern ve kullanici dostu kisisel finans yonetim uygulamasi. Flask + Firebase al
 
 1. **Repoyu klonlayin**
 ```bash
-git clone https://https://github.com/BerkeOK67/muhasebeAPP
+git clone https://https://github.com/BerkeOK67/muhasebeAPP.git
 cd muhasebeAPP
 ```
 
